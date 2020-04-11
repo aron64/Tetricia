@@ -19,11 +19,12 @@ https://tetris.fandom.com/wiki/Tetris_Guideline
 from tkinter import *
 from random import randrange,choice
 import threading,time
+from pynput import keyboard
 
 class I:
 	"""I - Tetromino behaviour description"""
 	def generate():
-		return {'coords': [(x,20) for x in range(3,7)], 'rot': 'N', 'color':'lightblue'}
+		return {'coords': [(x,20) for x in range(3,7)], 'rot': 'N', 'color':'#00ffff'}
 		
 		
 
@@ -68,19 +69,29 @@ init(master, blocksize=30, level=1)
 
 		#Bindings
 		self.master.bind("<Down>", self.arrow_down)
+		self.master.bind("<Right>", self.arrow_right)
+		self.master.bind("<Left>", self.arrow_left)
 
 		#Button for test
 		self.startButton = Button(self, text="PLAY", command=self.start_new_game)
 		self.startButton.grid(row=0)
 
 	def start_new_game(self):
-		self.gameThread=GameEngine(self, self.can, self.blocksize, self.level)
-		self.gameThread.start()
+		if not 0:#self.ingame:
+			self.gameThread=GameEngine(self, self.can, self.blocksize, self.level)
+			self.gameThread.start()
 
 	def arrow_down(self, event):
 		if self.ingame and not self.paused:
 			self.gameThread.soft_drop()
 
+	def arrow_right(self, event):
+		if self.ingame and not self.paused:
+			self.gameThread.move_right()
+
+	def arrow_left(self, event):
+		if self.ingame and not self.paused:
+			self.gameThread.move_left()
 
 class GameEngine(threading.Thread):
 	"""docstring for GameEngine"""
@@ -95,8 +106,10 @@ class GameEngine(threading.Thread):
 		self.phase="Inactive"
 
 		#Timing the soft drop
-		self.last_soft_drop=0
+		self.last_linedrop=0
 
+		#Timing of the last action (move/rotate, NOT drop)
+		self.last_action=time.time()
 		#Game speed
 		self.speed=(0.8 - ((self.level - 1) * 0.007))**(self.level - 1)
 
@@ -109,23 +122,23 @@ class GameEngine(threading.Thread):
 
 		#Initialize the active Tetromino's namespace
 		self.active=None
-		print("YES")
 
 	def run(self):
 		self.boss.ingame=True
-		self.generation_phase()
+		if self.generation_phase():
+			self.falling_phase()
 
 
 	def soft_drop(self):
 		"Soft drop event on Arrow Down pressed"
 		print("Soft drop")
 		now=time.time()
-		if now-self.last_soft_drop<(self.speed/20):
+		if now-self.last_linedrop<(self.speed/20):
 			return
 		else:
 			if not self.touching_surface():
-				self.last_soft_drop=now
-				self.down_one_row()
+				self.last_linedrop=now
+				self.linedrop()
 
 	def hard_drop(self):
 		"Hard drop event on Space pressed"
@@ -137,6 +150,61 @@ class GameEngine(threading.Thread):
 	def rotate_ccw(self):
 		"Counter-clockwise rotation event listener"
 		pass
+
+	def move_right(self):
+		"Get's called when user tries to move his object to the right direction"
+
+		# Conditions #		
+
+		if self.phase not in ("falling", "locking"):
+			return
+
+		for x,y in self.active['coords']:
+			if x==9:return
+			if self.GM[x+1][y]=='B':return
+
+		self.last_action=time.time()
+		#Backend
+		#Writing into both the self.active and the main matrix
+		new_coords=[]
+		for x,y in self.active['coords']:
+			new_coords.append((x+1,y))
+			self.GM[x][y]=0
+		self.active['coords']=new_coords[:]
+		for x,y in new_coords:
+			self.GM[x][y]='A'
+
+		#Visual
+		for block in self.active['objects']:
+			self.can.move(block, self.blocksize, 0)
+
+	def move_left(self):
+		"Get's called when user tries to move his object to the left direction"
+
+		# Conditions #
+
+		if self.phase not in ("falling", "locking"):
+			return
+
+		for x,y in self.active['coords']:
+			if x==0:return
+			if self.GM[x-1][y]=='B':return
+
+		self.last_action=time.time()
+		
+		#Backend
+		#Writing into both the self.active and the main matrix
+		new_coords=[]
+		for x,y in self.active['coords']:
+			new_coords.append((x-1,y))
+			self.GM[x][y]=0
+		self.active['coords']=new_coords[:]
+		for x,y in new_coords:
+			self.GM[x][y]='A'
+
+		#Visual
+		for block in self.active['objects']:
+			self.can.move(block, -self.blocksize, 0)
 
 	def generation_phase(self):
 		"""
@@ -156,7 +224,7 @@ to help the player manipulate it above the Skyline.
 		"""
 
 		#Set the phase
-		self.phase = "Generate"
+		self.phase = "generation"
 		### Choose the Tetromino - probably should make it pseudo-random?
 		bs=self.blocksize
 		### Choosing the tetromino - "bag" should be implemented
@@ -168,28 +236,27 @@ to help the player manipulate it above the Skyline.
 		self.active['objects']=[]
 		for x,y in self.active['coords']:
 			self.GM[x][y]='A'
-			self.active['objects'].append(self.can.create_rectangle(0+(bs*x),-bs,bs+(bs*x), 0, fill="blue"))
+			self.active['objects'].append(self.can.create_rectangle(0+(bs*x),-bs,bs+(bs*x), 0, fill=self.active['color']))
 		print(self.active)
-		self.falling_phase()
+		return 1
 
 	def falling_phase(self):
 		"During falling, the player can rotate, move sideways, soft drop, hard drop or hold the Tetromino"
-		if self.touching_surface():
-			print("HERE111")
-			self.lock_phase()
-			return
-		else:
-			print("HERE")
-			self.down_one_row()
-	
-		print("HERE1")
-		time.sleep(self.speed)
-		self.falling_phase()
+		self.phase="falling"
+		while self.phase=="falling":
+			if self.touching_surface():
+				return True
+			else:
+				now=time.time()
+				if now-self.last_linedrop>=self.speed:
+					self.last_linedrop=now
+					self.linedrop()
 
-	def down_one_row(self):
-		
+
+	def linedrop(self):
+		"Let the tetromino fall down one line. WARNING: This function does not check circumstances."
 		#Backend
-		#Refreshing both the self.active and the main matrix
+		#Writing into both the self.active and the main matrix
 		new_coords=[]
 		for x,y in self.active['coords']:
 			new_coords.append((x,y-1))
@@ -200,7 +267,7 @@ to help the player manipulate it above the Skyline.
 
 		#Visual
 		for block in self.active['objects']:
-			self.can.move(block, 0, 30)
+			self.can.move(block, 0, self.blocksize)
 
 	def lock_phase(self):
 		"During lock phase the player still rotate or move according to Extendended Placement Lockdown\nLock after: 0.5s\nAction limit: 15 actions"
@@ -248,7 +315,7 @@ Points are awarded to the player according to the Tetris Scoring System, as seen
 
 	def game_over(self):
 		pass
-		
+
 if __name__ == '__main__':
 	root=Tk()
 	fr=GameDashboard(root)
