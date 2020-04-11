@@ -17,6 +17,15 @@ https://tetris.fandom.com/wiki/Tetris_Guideline
 
 
 from tkinter import *
+from random import randrange,choice
+import threading,time
+
+class I:
+	"""I - Tetromino behaviour description"""
+	def generate():
+		return {'coords': [(x,20) for x in range(3,7)], 'rot': 'N', 'color':'lightblue'}
+		
+		
 
 class GameDashboard(Frame):
 	"""
@@ -32,12 +41,18 @@ init(master, blocksize=30, level=1)
 		Frame.__init__(self)
 		self.blocksize = blocksize
 		self.level=level
+
+		#Is the player in the game right now?
+		self.ingame = False
+		self.paused = False
+
+		self.gameThread=None
+
 		#Default background color
 		self.bg="black"
 
 		#The main canvas and the map of the game
 		self.can = Canvas(self, width=10*blocksize, height=20*blocksize, bg=self.bg)
-		self.GM = [[0]*40 for x in range(10)] #GameMatrix
 		
 		#The hold canvas
 		self.hold_can = Canvas(self, width=6*blocksize, height=4*blocksize, bg=self.bg)
@@ -45,16 +60,82 @@ init(master, blocksize=30, level=1)
 		#Canvas of the next pieces
 		self.queue_can = Canvas(self, width=6*blocksize, height=20*blocksize, bg=self.bg)
 
+		#Widget placements
 		self.hold_can.grid(row=0, column=0, padx=5, pady=5, sticky=N)
 		self.can.grid(row=0, column=1, pady=5, rowspan=5)
 		self.queue_can.grid(row=0, column=2, columnspan=5, padx=5, pady=5, sticky = N)
 
+
+		#Bindings
+		self.master.bind("<Down>", self.arrow_down)
+
+		#Button for test
+		self.startButton = Button(self, text="PLAY", command=self.start_new_game)
+		self.startButton.grid(row=0)
+
+	def start_new_game(self):
+		self.gameThread=GameEngine(self, self.can, self.blocksize, self.level)
+		self.gameThread.start()
+
+	def arrow_down(self, event):
+		if self.ingame and not self.paused:
+			self.gameThread.soft_drop()
+
+
+class GameEngine(threading.Thread):
+	"""docstring for GameEngine"""
+	def __init__(self, boss, can, blocksize, level):
+		threading.Thread.__init__(self)
+		self.boss = boss
+		self.can = can
+		self.blocksize = blocksize
+		self.level = level
+
+		#Game Phase tracker
+		self.phase="Inactive"
+
+		#Timing the soft drop
+		self.last_soft_drop=0
+
+		#Game speed
+		self.speed=(0.8 - ((self.level - 1) * 0.007))**(self.level - 1)
+
+		#Game Matrix
+		#A: Active Tetromino
+		self.GM = [[0]*40 for x in range(10)]
+
+		#The way it works
+		self.minos={'I':I}
+
+		#Initialize the active Tetromino's namespace
+		self.active=None
+		print("YES")
+
+	def run(self):
+		self.boss.ingame=True
+		self.generation_phase()
+
+
 	def soft_drop(self):
 		"Soft drop event on Arrow Down pressed"
-		pass
+		print("Soft drop")
+		now=time.time()
+		if now-self.last_soft_drop<(self.speed/20):
+			return
+		else:
+			if not self.touching_surface():
+				self.last_soft_drop=now
+				self.down_one_row()
 
 	def hard_drop(self):
 		"Hard drop event on Space pressed"
+		pass
+
+	def rotate_cw(self):
+		"Clockwise rotation event listener"
+		pass
+	def rotate_ccw(self):
+		"Counter-clockwise rotation event listener"
 		pass
 
 	def generation_phase(self):
@@ -73,16 +154,53 @@ If an existing Block is in the Tetrimino’s path, the Tetrimino does not drop o
 however, a few pixels of the generated Tetrimino are shown (hardware permitting)
 to help the player manipulate it above the Skyline.
 		"""
-		### Generation phase code ###
-		###
-		###
 
+		#Set the phase
+		self.phase = "Generate"
+		### Choose the Tetromino - probably should make it pseudo-random?
+		bs=self.blocksize
+		### Choosing the tetromino - "bag" should be implemented
+		self.active=choice(list(self.minos.values())).generate()
+		if self.block_out(self.active['coords']):
+			self.game_over()
+			return
+
+		self.active['objects']=[]
+		for x,y in self.active['coords']:
+			self.GM[x][y]='A'
+			self.active['objects'].append(self.can.create_rectangle(0+(bs*x),-bs,bs+(bs*x), 0, fill="blue"))
+		print(self.active)
 		self.falling_phase()
 
 	def falling_phase(self):
 		"During falling, the player can rotate, move sideways, soft drop, hard drop or hold the Tetromino"
-		pass
+		if self.touching_surface():
+			print("HERE111")
+			self.lock_phase()
+			return
+		else:
+			print("HERE")
+			self.down_one_row()
+	
+		print("HERE1")
+		time.sleep(self.speed)
+		self.falling_phase()
 
+	def down_one_row(self):
+		
+		#Backend
+		#Refreshing both the self.active and the main matrix
+		new_coords=[]
+		for x,y in self.active['coords']:
+			new_coords.append((x,y-1))
+			self.GM[x][y]=0
+		self.active['coords']=new_coords[:]
+		for x,y in new_coords:
+			self.GM[x][y]='A'
+
+		#Visual
+		for block in self.active['objects']:
+			self.can.move(block, 0, 30)
 
 	def lock_phase(self):
 		"During lock phase the player still rotate or move according to Extendended Placement Lockdown\nLock after: 0.5s\nAction limit: 15 actions"
@@ -109,7 +227,28 @@ then all Minos above that row(s) collapse, or fall by the number of complete row
 Points are awarded to the player according to the Tetris Scoring System, as seen in the Scoring section.
 """
 		pass
-#Speed : (0.8 - ((level - 1) * 0.007))**(level - 1)
+
+	def block_out(self, coords):
+		"Game Over Condition - Is it possible to place the new Tetromino?"
+		for x,y in coords:
+			if self.GM[x][y]!=0:
+				return True
+		return False
+
+	def touching_surface(self):
+		"Is the Tetromino directily on a surface?"
+		for x,y in self.active['coords']:
+
+			#Is it on the ground?
+			if y==0:return True
+
+			#Is it on top of another [B]lock?
+			if self.GM[x][y-1]=='B':
+				return True
+
+	def game_over(self):
+		pass
+		
 if __name__ == '__main__':
 	root=Tk()
 	fr=GameDashboard(root)
