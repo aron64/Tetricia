@@ -72,6 +72,11 @@ init(master, blocksize=30, level=1)
 		self.blocksize = blocksize
 		self.level=level
 
+
+		#Different lock object for gameplay and network interferences
+		self.netLock = threading.Lock()
+		self.gameLock = threading.Lock()
+
 		#Is the player in the game right now?
 		self.ingame = False
 		self.paused = False
@@ -116,19 +121,27 @@ init(master, blocksize=30, level=1)
 
 	def arrow_down(self, event):
 		if self.ingame and not self.paused:
+			self.gameLock.acquire()
 			self.gameThread.soft_drop()
+			self.gameLock.release()
 
 	def arrow_right(self, event):
 		if self.ingame and not self.paused:
+			self.gameLock.acquire()
 			self.gameThread.move_right()
+			self.gameLock.release()
 
 	def arrow_left(self, event):
 		if self.ingame and not self.paused:
+			self.gameLock.acquire()
 			self.gameThread.move_left()
+			self.gameLock.release()
 
 	def button_space(self, event):
 		if self.ingame and not self.paused:
+			self.gameLock.acquire()
 			self.gameThread.hard_drop()
+			self.gameLock.release()
 
 class GameEngine(threading.Thread):
 	"""docstring for GameEngine"""
@@ -139,6 +152,7 @@ class GameEngine(threading.Thread):
 		self.blocksize = blocksize
 		self.level = level
 		self.bag=bag
+
 		#Game Phase tracker
 		self.phase="Inactive"
 
@@ -263,10 +277,9 @@ to help the player manipulate it above the Skyline.
 
 		#Set the phase
 		self.phase = "generation"
-		### Choose the Tetromino - probably should make it pseudo-random?
 		bs=self.blocksize
 
-
+		### Pick up the next tetromino from the Next Queue
 		self.active=self.bag.next().generate()
 
 		if self.block_out(self.active['coords']):
@@ -290,8 +303,10 @@ to help the player manipulate it above the Skyline.
 			else:
 				now=time.time()
 				if now-self.last_linedrop>=self.speed:
+					self.boss.gameLock.acquire()
 					self.last_linedrop=now
 					self.linedrop()
+					self.boss.gameLock.release()
 
 
 	def linedrop(self):
@@ -402,6 +417,9 @@ This system allows for equal distribution among the seven Tetriminos.
 		bs=self.blocksize
 		curr=mino.generate()
 		self.objects.append([self.queue_can.create_rectangle(-40+(bs*x),570-(y-19)*bs,-40+bs+(bs*x), 570-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']])
+
+
+
 
 if __name__ == '__main__':
 	root=Tk()
