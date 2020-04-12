@@ -156,6 +156,9 @@ class GameEngine(threading.Thread):
 		#Game Phase tracker
 		self.phase="Inactive"
 
+		#Action counter in locking phasee
+		self.counter=0
+
 		#Timing the soft drop
 		self.last_linedrop=0
 
@@ -171,6 +174,11 @@ class GameEngine(threading.Thread):
 		#Initialize the active Tetromino's namespace
 		self.active=None
 
+		self.bonuses=["Single","Double","Triple","Tetris","Mini T-Spin","Mini T-Spin Single","T-Spin","T-Spin Single","T-Spin Double","T-Spin Triple","Back-to-Back Bonus","Soft Drop","Hard Drop"]
+		self.multiplier=[100,300,500,800,100,200,400,800,1200,1600, 0.5, 1,2]
+		self.score={}
+		self.gameScore=0
+
 	def run(self):
 		self.boss.ingame=True
 		if self.generation_phase():
@@ -179,7 +187,10 @@ class GameEngine(threading.Thread):
 
 	def soft_drop(self):
 		"Soft drop event on Arrow Down pressed"
-		print("Soft drop")
+
+		if self.phase not in ("falling", "locking"):
+			return
+
 		now=time.time()
 		if now-self.last_linedrop<(self.speed/20):
 			return
@@ -190,11 +201,28 @@ class GameEngine(threading.Thread):
 
 	def hard_drop(self):
 		"Hard drop event on Space pressed"
+		print("Hard drop")
 		if self.phase not in ("falling", "locking"):
 			return
 
+		self.phase="pattern"
+		#self.last_linedrop=time.now()
+		#How much is it possible to drop_
+		min_d=40
 		for x,y in self.active['coords']:
-			pass
+			y0=0
+			if min_d>y-y0:
+				min_d=y-y0
+			for y0 in range(0,y):
+				if self.GM[x][y0]=='B':
+					if min_d>y-y0:
+						min_d=y-y0
+
+		[self.linedrop() for x in range(min_d)]
+		self.score['Hard Drop']=min_d
+		self.lock_down()
+		self.pattern_phase()
+
 
 	def rotate_cw(self):
 		"Clockwise rotation event listener"
@@ -279,6 +307,7 @@ to help the player manipulate it above the Skyline.
 		self.phase = "generation"
 		bs=self.blocksize
 
+		self.score={}
 		### Pick up the next tetromino from the Next Queue
 		self.active=self.bag.next().generate()
 
@@ -299,6 +328,8 @@ to help the player manipulate it above the Skyline.
 		while self.phase=="falling":
 			if self.boss.paused: continue
 			if self.touching_surface():
+				#set new phase
+				#return to main cycle
 				return True
 			else:
 				now=time.time()
@@ -328,6 +359,10 @@ to help the player manipulate it above the Skyline.
 	def lock_phase(self):
 		"During lock phase the player still rotate or move according to Extendended Placement Lockdown\nLock after: 0.5s\nAction limit: 15 actions"
 		pass
+
+	def lock_down(self):
+		for x,y in self.active['coords']:
+			pass#self.GM[]
 
 	def pattern_phase(self):
 		"""
