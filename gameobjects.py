@@ -17,15 +17,44 @@ https://tetris.fandom.com/wiki/Tetris_Guideline
 
 
 from tkinter import *
-from random import randrange,choice
+from random import randrange,shuffle
 import threading,time
 from pynput import keyboard
 
 class I:
 	"""I - Tetromino behaviour description"""
 	def generate():
-		return {'coords': [(x,20) for x in range(3,7)], 'rot': 'N', 'color':'#00ffff'}
+		return {'type': I, 'coords': [(x,20) for x in range(3,7)], 'rot': 'N', 'color':'#00ffff'}
+
+class T:
+	"""T - Tetromino behaviour description"""
+	def generate():
+		return {'type': T, 'coords': [(x,20) for x in range(4,7)]+[(5,21)], 'rot': 'N', 'color':'#800080'}
+
+class L:
+	"""L - Tetromino behaviour description"""
+	def generate():
+		return {'type': L, 'coords': [(x,20) for x in range(4,7)]+[(6,21)], 'rot': 'N', 'color':'#ffa500'}
+
+class J:
+	"""J - Tetromino behaviour description"""
+	def generate():
+		return {'type': J, 'coords': [(x,20) for x in range(4,7)]+[(4,21)], 'rot': 'N', 'color':'#0000ff'}
+
+class S:
+	"""S - Tetromino behaviour description"""
+	def generate():
+		return {'type': S, 'coords': [(4,20),(5,20), (5,21),(6,21)], 'rot': 'N', 'color':'#00ff00'}
+
+class Z:
+	"""Z - Tetromino behaviour description"""
+	def generate():
+		return {'type': Z, 'coords': [(5,20),(6,20), (4,21),(5,21)], 'rot': 'N', 'color':'#ff0000'}
 		
+class O:
+	"""O - Tetromino behaviour description"""
+	def generate():
+		return {'type': O, 'coords': [(5,20),(6,20), (5,21),(6,21)], 'rot': 'N', 'color':'#ffff00'}
 		
 
 class GameDashboard(Frame):
@@ -60,6 +89,8 @@ init(master, blocksize=30, level=1)
 
 		#Canvas of the next pieces
 		self.queue_can = Canvas(self, width=6*blocksize, height=20*blocksize, bg=self.bg)
+		self.queue_can.create_rectangle(0,0,7*blocksize,100, fill="cyan")
+		self.bag=Bag(self.queue_can, blocksize)
 
 		#Widget placements
 		self.hold_can.grid(row=0, column=0, padx=5, pady=5, sticky=N)
@@ -71,6 +102,7 @@ init(master, blocksize=30, level=1)
 		self.master.bind("<Down>", self.arrow_down)
 		self.master.bind("<Right>", self.arrow_right)
 		self.master.bind("<Left>", self.arrow_left)
+		self.master.bind("<space>", self.button_space)
 
 		#Button for test
 		self.startButton = Button(self, text="PLAY", command=self.start_new_game)
@@ -78,7 +110,8 @@ init(master, blocksize=30, level=1)
 
 	def start_new_game(self):
 		if not 0:#self.ingame:
-			self.gameThread=GameEngine(self, self.can, self.blocksize, self.level)
+			self.bag.start()
+			self.gameThread=GameEngine(self, self.can, self.blocksize, self.level,self.bag)
 			self.gameThread.start()
 
 	def arrow_down(self, event):
@@ -93,15 +126,19 @@ init(master, blocksize=30, level=1)
 		if self.ingame and not self.paused:
 			self.gameThread.move_left()
 
+	def button_space(self, event):
+		if self.ingame and not self.paused:
+			self.gameThread.hard_drop()
+
 class GameEngine(threading.Thread):
 	"""docstring for GameEngine"""
-	def __init__(self, boss, can, blocksize, level):
+	def __init__(self, boss, can, blocksize, level,bag):
 		threading.Thread.__init__(self)
 		self.boss = boss
 		self.can = can
 		self.blocksize = blocksize
 		self.level = level
-
+		self.bag=bag
 		#Game Phase tracker
 		self.phase="Inactive"
 
@@ -116,9 +153,6 @@ class GameEngine(threading.Thread):
 		#Game Matrix
 		#A: Active Tetromino
 		self.GM = [[0]*40 for x in range(10)]
-
-		#The way it works
-		self.minos={'I':I}
 
 		#Initialize the active Tetromino's namespace
 		self.active=None
@@ -142,7 +176,11 @@ class GameEngine(threading.Thread):
 
 	def hard_drop(self):
 		"Hard drop event on Space pressed"
-		pass
+		if self.phase not in ("falling", "locking"):
+			return
+
+		for x,y in self.active['coords']:
+			pass
 
 	def rotate_cw(self):
 		"Clockwise rotation event listener"
@@ -227,8 +265,10 @@ to help the player manipulate it above the Skyline.
 		self.phase = "generation"
 		### Choose the Tetromino - probably should make it pseudo-random?
 		bs=self.blocksize
-		### Choosing the tetromino - "bag" should be implemented
-		self.active=choice(list(self.minos.values())).generate()
+
+
+		self.active=self.bag.next().generate()
+
 		if self.block_out(self.active['coords']):
 			self.game_over()
 			return
@@ -236,7 +276,7 @@ to help the player manipulate it above the Skyline.
 		self.active['objects']=[]
 		for x,y in self.active['coords']:
 			self.GM[x][y]='A'
-			self.active['objects'].append(self.can.create_rectangle(0+(bs*x),-bs,bs+(bs*x), 0, fill=self.active['color']))
+			self.active['objects'].append(self.can.create_rectangle(0+(bs*x),-(y-19)*bs,bs+(bs*x), -(y-20)*bs, fill=self.active['color']))
 		print(self.active)
 		return 1
 
@@ -244,6 +284,7 @@ to help the player manipulate it above the Skyline.
 		"During falling, the player can rotate, move sideways, soft drop, hard drop or hold the Tetromino"
 		self.phase="falling"
 		while self.phase=="falling":
+			if self.boss.paused: continue
 			if self.touching_surface():
 				return True
 			else:
@@ -316,9 +357,58 @@ Points are awarded to the player according to the Tetris Scoring System, as seen
 	def game_over(self):
 		pass
 
+class Bag:
+	"""
+Tetris uses a “bag” system to determine the sequence of Tetriminos that appear during game play.
+This system allows for equal distribution among the seven Tetriminos.
+"""
+	def __init__(self, queue_can,blocksize):
+		self.minos=[T, I, J, L, S, Z, O]
+		self.queue_can=queue_can
+		self.next_queue=[]
+		self.bag=[]
+		self.objects=[]
+		self.blocksize=blocksize*(8/10)
+
+	def start(self):
+		"Initialize the first Bag and Next Queue"
+		self.bag=self.minos.copy()
+		shuffle(self.bag)
+		self.next_queue=self.bag[:6]
+		for i in self.next_queue:
+			self.queue_forward(i, False)
+		del self.bag[:6]
+		
+	def next(self):
+		"Return the next tetromino for the Game Engine, and step the que forward"
+		ret=self.next_queue[0]
+		del self.next_queue[0]
+		self.next_queue.append(self.bag[0])
+		del self.bag[0]
+		if len(self.bag)==0:
+			self.bag=self.minos.copy()
+			shuffle(self.bag)
+		self.queue_forward(ret)
+		return ret
+
+	def queue_forward(self, mino, delete=True):
+		"Delete (optionally) the top tetromino, Move each Tetromino up by one in the que, and place the next to the end of queue\nqueue_forward(mino, delete=True)\nmino:Tetromino-type ref\ndelete: delete the top piece"
+		if delete:
+			for i in self.objects[0]:
+				self.queue_can.delete(i)
+		for i in self.objects:
+			for j in i:
+				self.queue_can.move(j, 0, -100)
+		bs=self.blocksize
+		curr=mino.generate()
+		self.objects.append([self.queue_can.create_rectangle(-40+(bs*x),570-(y-19)*bs,-40+bs+(bs*x), 570-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']])
+
 if __name__ == '__main__':
 	root=Tk()
 	fr=GameDashboard(root)
 	fr.pack()
 	root.title("Tetrícia")
 	root.mainloop()
+
+
+# HARD DROP, BAG
