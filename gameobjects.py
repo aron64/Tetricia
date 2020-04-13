@@ -153,30 +153,13 @@ class GameEngine(threading.Thread):
 		#Game Phase tracker
 		self.phase="Inactive"
 
-		#Action counter in locking phasee
-		self.counter=0
-
-		#### Flags ####
-		#Did a hard drop occur?
-		self.hard_drop_flag=False
-		#Soft drop?
-		self.soft_drop_flag=False
-		#Move?
-		self.move_left_flag=False
-		self.move_right_flag=False
 		#Window closed?
 		self.abandon=False
 
-		#Timing the soft drop
-		self.last_linedrop=0
-
-		#Timing of the last action (move/rotate, NOT drop)
-		self.last_action=time.time()
-		#Game speed
-		self.speed=(0.8 - ((self.level - 1) * 0.007))**(self.level - 1)
-
 		#Game Matrix
 		#A: Active Tetromino
+		#B: Block
+		#E: Marked for elimination
 		self.GM = [[0]*40 for x in range(10)]
 
 		#Initialize the active Tetromino's namespace
@@ -209,13 +192,13 @@ class GameEngine(threading.Thread):
 					# if self.phase="pattern":
 					# 	self.pattern_phase()
 						raise "This should've never occur!"
+				print("Locked!")
 		except AbandonException as e:
 			print(type(e))
 
 
 	def call_soft_drop(self):
 		"Soft drop event on Arrow Down pressed"
-
 		if self.phase not in ("falling", "locking"):
 			return
 		self.soft_drop_flag=True
@@ -344,8 +327,31 @@ to help the player manipulate it above the Skyline.
 
 		bs=self.blocksize
 
+		#Game speed
+		self.speed=(0.8 - ((self.level - 1) * 0.007))**(self.level - 1)
+		#Score in each turn will be logged in a dictionary
 		self.score={}
+		#Lowest line tracker
+		self.lowest_line_reached=21
+
+		#### Flags ####
+		#Did a hard drop occur?
 		self.hard_drop_flag=False
+		#Soft drop?
+		self.soft_drop_flag=False
+		#Move?
+		self.move_left_flag=False
+		self.move_right_flag=False
+
+		#Action counter in locking phasee
+		self.counter=0
+
+		#Timing the soft drop
+		self.last_linedrop=0
+
+		#Timing of the last action (move/rotate, NOT drop)
+		self.last_action=time.time()
+
 		### Pick up the next tetromino from the Next Queue
 		self.active=self.bag.next().generate()
 
