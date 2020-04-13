@@ -192,13 +192,14 @@ class GameEngine(threading.Thread):
 					# if self.phase="pattern":
 					# 	self.pattern_phase()
 						raise "This should've never occur!"
+				self.phase="pattern"
 				print("Locked!")
 		except AbandonException as e:
 			print(type(e))
 
 
 	def call_soft_drop(self):
-		"Soft drop event on Arrow Down pressed"
+		"Set flag for a Soft Drop"
 		if self.phase not in ("falling", "locking"):
 			return
 		self.soft_drop_flag=True
@@ -214,7 +215,7 @@ class GameEngine(threading.Thread):
 				self.linedrop()
 
 	def call_hard_drop(self):
-		"Hard drop event on Space pressed"
+		"Set flag for a Hard Drop"
 
 		if self.phase not in ("falling", "locking"):
 			return
@@ -248,19 +249,17 @@ class GameEngine(threading.Thread):
 		pass
 
 	def call_move_right(self):
-		"Get's called when user tries to move his object to the right direction"
-
-		# Conditions #		
-
+		"Set flag for moving the Tetromino to the right direction"
 		if self.phase not in ("falling", "locking"):
 			return
 		self.move_right_flag=True
 
 	def move_right(self):
+		"Attemps to move the Tetromino one block right. Returns True if successful and False if not."
 		self.move_right_flag=False
 		for x,y in self.active['coords']:
-			if x==9:return
-			if self.GM[x+1][y]=='B':return
+			if x==9:return False
+			if self.GM[x+1][y]=='B':return False
 
 		self.last_action=time.time()
 		#Backend
@@ -277,20 +276,21 @@ class GameEngine(threading.Thread):
 		for block in self.active['objects']:
 			self.can.move(block, self.blocksize, 0)
 
-	def call_move_left(self):
-		"Get's called when user tries to move his object to the left direction"
+		return True
 
-		# Conditions #
+	def call_move_left(self):
+		"Set flag for moving the Tetromino to the left direction"
+
 		if self.phase not in ("falling", "locking"):
 			return
-
 		self.move_left_flag=True
 
 	def move_left(self):
+		"Attemps to move the Tetromino one block left. Returns True if successful and False if not."
 		self.move_left_flag=False
 		for x,y in self.active['coords']:
-			if x==0:return
-			if self.GM[x-1][y]=='B':return
+			if x==0:return False
+			if self.GM[x-1][y]=='B':return False
 
 		self.last_action=time.time()
 		
@@ -307,6 +307,8 @@ class GameEngine(threading.Thread):
 		#Visual
 		for block in self.active['objects']:
 			self.can.move(block, -self.blocksize, 0)
+
+		return True
 
 	def generation_phase(self):
 		"""
@@ -419,7 +421,39 @@ to help the player manipulate it above the Skyline.
 
 	def lock_phase(self):
 		"During lock phase the player still rotate or move according to Extendended Placement Lockdown\nLock after: 0.5s\nAction limit: 15 actions"
-		pass
+		
+		self.last_action=time.time()
+		while self.phase=="locking":##time.time()-timer<0.5:
+			if self.abandon:raise AbandonException()
+			if self.boss.paused: continue
+
+			if self.counter==15:
+				self.lock_down()
+				return True
+			#Hard Drop?
+			if self.hard_drop_flag:
+				self.hard_drop()
+				return True
+
+			#Atop Surface?
+			if not self.touching_surface():
+				#return to main cycle
+				return False
+
+			#Soft Drop?
+			#Once the surface is reached, Soft Drop should not auto-repeat, rather just wait out the 0.5 sec to lock down.
+
+			elif self.move_left_flag:
+				act=self.move_left()
+				if act:self.counter+=1
+			elif self.move_right_flag:
+				act=self.move_right()
+				if act:self.counter+=1
+			else:
+				if time.time()-self.last_action>=0.5:
+					self.lock_down()
+					return True
+
 
 	def lock_down(self):
 		for x,y in self.active['coords']:
@@ -526,3 +560,9 @@ if __name__ == '__main__':
 	fr.pack()
 	root.title("Tetrícia")
 	root.mainloop()
+
+
+#TODO
+#Ghost Piece ~ Hard Drop...
+#Locking phase
+#5.2 Auto-repeat
