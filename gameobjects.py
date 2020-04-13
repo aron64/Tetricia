@@ -121,21 +121,15 @@ init(master, blocksize=30, level=1)
 
 	def arrow_down(self, event):
 		if self.ingame and not self.paused:
-			self.gameLock.acquire()
-			self.gameThread.soft_drop()
-			self.gameLock.release()
+			self.gameThread.call_soft_drop()
 
 	def arrow_right(self, event):
 		if self.ingame and not self.paused:
-			self.gameLock.acquire()
-			self.gameThread.move_right()
-			self.gameLock.release()
+			self.gameThread.call_move_right()
 
 	def arrow_left(self, event):
 		if self.ingame and not self.paused:
-			self.gameLock.acquire()
-			self.gameThread.move_left()
-			self.gameLock.release()
+			self.gameThread.call_move_left()
 
 	def button_space(self, event):
 		if self.ingame and not self.paused:
@@ -159,9 +153,11 @@ class GameEngine(threading.Thread):
 
 		#Did a hard drop occur?
 		self.hard_drop_flag=False
-
 		#Soft drop?
 		self.soft_drop_flag=False
+		#Move?
+		self.move_left_flag=False
+		self.move_right_flag=False
 		#Timing the soft drop
 		self.last_linedrop=0
 
@@ -215,6 +211,7 @@ class GameEngine(threading.Thread):
 		self.soft_drop_flag=True
 
 	def soft_drop(self):
+		self.soft_drop_flag=False
 		now=time.time()
 		if now-self.last_linedrop<(self.speed/20):
 			return
@@ -222,7 +219,6 @@ class GameEngine(threading.Thread):
 			if not self.touching_surface():
 				self.last_linedrop=now
 				self.linedrop()
-		self.soft_drop_flag=False
 
 	def call_hard_drop(self):
 		"Hard drop event on Space pressed"
@@ -248,6 +244,7 @@ class GameEngine(threading.Thread):
 		[self.linedrop() for x in range(min_d)]
 		self.score['Hard Drop']=min_d
 		self.lock_down()
+		self.hard_drop_flag=False
 
 
 	def rotate_cw(self):
@@ -257,14 +254,17 @@ class GameEngine(threading.Thread):
 		"Counter-clockwise rotation event listener"
 		pass
 
-	def move_right(self):
+	def call_move_right(self):
 		"Get's called when user tries to move his object to the right direction"
 
 		# Conditions #		
 
 		if self.phase not in ("falling", "locking"):
 			return
+		self.move_right_flag=True
 
+	def move_right(self):
+		self.move_right_flag=False
 		for x,y in self.active['coords']:
 			if x==9:return
 			if self.GM[x+1][y]=='B':return
@@ -284,7 +284,7 @@ class GameEngine(threading.Thread):
 		for block in self.active['objects']:
 			self.can.move(block, self.blocksize, 0)
 
-	def move_left(self):
+	def call_move_left(self):
 		"Get's called when user tries to move his object to the left direction"
 
 		# Conditions #
@@ -292,6 +292,10 @@ class GameEngine(threading.Thread):
 		if self.phase not in ("falling", "locking"):
 			return
 
+		self.move_left_flag=True
+
+	def move_left(self):
+		self.move_left_flag=False
 		for x,y in self.active['coords']:
 			if x==0:return
 			if self.GM[x-1][y]=='B':return
@@ -365,6 +369,11 @@ to help the player manipulate it above the Skyline.
 			#Soft Drop?
 			if self.soft_drop_flag:
 				self.soft_drop()
+			#Soft Drop?
+			elif self.move_left_flag:
+				self.move_left()
+			elif self.move_right_flag:
+				self.move_right()
 			else:
 				now=time.time()
 				if now-self.last_linedrop>=self.speed:
