@@ -72,7 +72,6 @@ init(master, blocksize=30, level=1)
 		self.blocksize = blocksize
 		self.level=level
 
-
 		#Different lock object for gameplay and network interferences
 		self.netLock = threading.Lock()
 		self.gameLock = threading.Lock()
@@ -104,6 +103,8 @@ init(master, blocksize=30, level=1)
 
 
 		#Bindings
+		self.bind("<Destroy>", self._destroy)
+
 		self.master.bind("<Down>", self.arrow_down)
 		self.master.bind("<Right>", self.arrow_right)
 		self.master.bind("<Left>", self.arrow_left)
@@ -113,8 +114,12 @@ init(master, blocksize=30, level=1)
 		self.startButton = Button(self, text="PLAY", command=self.start_new_game)
 		self.startButton.grid(row=0)
 
+	def _destroy(self,event):
+		if self.ingame:
+			self.gameThread.call_quit()
 	def start_new_game(self):
-		if not 0:#self.ingame:
+		if not self.ingame:
+			self.ingame=True
 			self.bag.start()
 			self.gameThread=GameEngine(self, self.can, self.blocksize, self.level,self.bag)
 			self.gameThread.start()
@@ -151,6 +156,7 @@ class GameEngine(threading.Thread):
 		#Action counter in locking phasee
 		self.counter=0
 
+		#### Flags ####
 		#Did a hard drop occur?
 		self.hard_drop_flag=False
 		#Soft drop?
@@ -158,6 +164,9 @@ class GameEngine(threading.Thread):
 		#Move?
 		self.move_left_flag=False
 		self.move_right_flag=False
+		#Window closed?
+		self.abandon=False
+
 		#Timing the soft drop
 		self.last_linedrop=0
 
@@ -177,30 +186,31 @@ class GameEngine(threading.Thread):
 		self.multiplier=[100,300,500,800,100,200,400,800,1200,1600, 0.5, 1,2]
 		self.score={}
 		self.gameScore=0
+	def call_quit(self):
+		self.abandon=True
 
 	def run(self):
-		self.boss.ingame=True
-
-		self.phase = "generation"
-		if self.generation_phase():
-			self.phase="falling"
-			locked=False
-			while not locked:
-				if self.phase=="falling":
-					locked=self.falling_phase()
-					if not locked:
-						self.phase="locking"
-
-				elif self.phase=="locking":
-					locked=self.lock_phase()
-					if not locked:
-						self.phase="falling"
-				else:
-					raise "This should've never occur!"
-			print("here")
-			# if self.phase="pattern":
-			# 	self.pattern_phase()
-			# elif self.phase="locking"
+		try:
+			self.boss.ingame=True
+			self.phase = "generation"
+			if self.generation_phase():
+				self.phase="falling"
+				locked=False
+				while not locked:
+					if self.phase=="falling":
+						locked=self.falling_phase()
+						if not locked:
+							self.phase="locking"
+					elif self.phase=="locking":
+						locked=self.lock_phase()
+						if not locked:
+							self.phase="falling"
+					else:
+					# if self.phase="pattern":
+					# 	self.pattern_phase()
+						raise "This should've never occur!"
+		except AbandonException as e:
+			print(type(e))
 
 
 	def call_soft_drop(self):
@@ -288,7 +298,6 @@ class GameEngine(threading.Thread):
 		"Get's called when user tries to move his object to the left direction"
 
 		# Conditions #
-
 		if self.phase not in ("falling", "locking"):
 			return
 
@@ -355,6 +364,7 @@ to help the player manipulate it above the Skyline.
 		"During falling, the player can rotate, move sideways, soft drop, hard drop or hold the Tetromino"
 
 		while self.phase=="falling":
+			if self.abandon:raise AbandonException()
 			if self.boss.paused: continue
 
 			#Hard Drop?
@@ -499,7 +509,10 @@ This system allows for equal distribution among the seven Tetriminos.
 		self.objects.append([self.queue_can.create_rectangle(-40+(bs*x),570-(y-19)*bs,-40+bs+(bs*x), 570-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']])
 
 
-
+class AbandonException(Exception):
+	"""Exception occurs when the player quits during an ongoing (either paused or unpaused) game. This serves the purpose of closing down threads."""
+	pass
+		
 
 if __name__ == '__main__':
 	root=Tk()
@@ -507,6 +520,3 @@ if __name__ == '__main__':
 	fr.pack()
 	root.title("Tetrícia")
 	root.mainloop()
-
-
-# HARD DROP, BAG
