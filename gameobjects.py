@@ -139,9 +139,7 @@ init(master, blocksize=30, level=1)
 
 	def button_space(self, event):
 		if self.ingame and not self.paused:
-			self.gameLock.acquire()
-			self.gameThread.hard_drop()
-			self.gameLock.release()
+			self.gameThread.call_hard_drop()
 
 class GameEngine(threading.Thread):
 	"""docstring for GameEngine"""
@@ -159,6 +157,11 @@ class GameEngine(threading.Thread):
 		#Action counter in locking phasee
 		self.counter=0
 
+		#Did a hard drop occur?
+		self.hard_drop_flag=False
+
+		#Soft drop?
+		self.soft_drop_flag=False
 		#Timing the soft drop
 		self.last_linedrop=0
 
@@ -181,16 +184,37 @@ class GameEngine(threading.Thread):
 
 	def run(self):
 		self.boss.ingame=True
+
+		self.phase = "generation"
 		if self.generation_phase():
-			self.falling_phase()
+			self.phase="falling"
+			locked=False
+			while not locked:
+				if self.phase=="falling":
+					locked=self.falling_phase()
+					if not locked:
+						self.phase="locking"
+
+				elif self.phase=="locking":
+					locked=self.lock_phase()
+					if not locked:
+						self.phase="falling"
+				else:
+					raise "This should've never occur!"
+			print("here")
+			# if self.phase="pattern":
+			# 	self.pattern_phase()
+			# elif self.phase="locking"
 
 
-	def soft_drop(self):
+	def call_soft_drop(self):
 		"Soft drop event on Arrow Down pressed"
 
 		if self.phase not in ("falling", "locking"):
 			return
+		self.soft_drop_flag=True
 
+	def soft_drop(self):
 		now=time.time()
 		if now-self.last_linedrop<(self.speed/20):
 			return
@@ -198,21 +222,24 @@ class GameEngine(threading.Thread):
 			if not self.touching_surface():
 				self.last_linedrop=now
 				self.linedrop()
+		self.soft_drop_flag=False
 
-	def hard_drop(self):
+	def call_hard_drop(self):
 		"Hard drop event on Space pressed"
-		print("Hard drop")
+
 		if self.phase not in ("falling", "locking"):
 			return
+		self.hard_drop_flag=True
 
-		self.phase="pattern"
-		#self.last_linedrop=time.now()
-		#How much is it possible to drop_
+	def hard_drop(self):
+		#How much is it possible to drop?
 		min_d=40
 		for x,y in self.active['coords']:
 			y0=0
+			
 			if min_d>y-y0:
 				min_d=y-y0
+
 			for y0 in range(0,y):
 				if self.GM[x][y0]=='B':
 					if min_d>y-y0:
@@ -221,7 +248,6 @@ class GameEngine(threading.Thread):
 		[self.linedrop() for x in range(min_d)]
 		self.score['Hard Drop']=min_d
 		self.lock_down()
-		self.pattern_phase()
 
 
 	def rotate_cw(self):
@@ -303,11 +329,10 @@ however, a few pixels of the generated Tetrimino are shown (hardware permitting)
 to help the player manipulate it above the Skyline.
 		"""
 
-		#Set the phase
-		self.phase = "generation"
 		bs=self.blocksize
 
 		self.score={}
+		self.hard_drop_flag=False
 		### Pick up the next tetromino from the Next Queue
 		self.active=self.bag.next().generate()
 
@@ -324,13 +349,22 @@ to help the player manipulate it above the Skyline.
 
 	def falling_phase(self):
 		"During falling, the player can rotate, move sideways, soft drop, hard drop or hold the Tetromino"
-		self.phase="falling"
+
 		while self.phase=="falling":
 			if self.boss.paused: continue
-			if self.touching_surface():
-				#set new phase
-				#return to main cycle
+
+			#Hard Drop?
+			if self.hard_drop_flag:
+				self.hard_drop()
 				return True
+
+			#Atop Surface?
+			if self.touching_surface():
+				#return to main cycle
+				return False
+			#Soft Drop?
+			if self.soft_drop_flag:
+				self.soft_drop()
 			else:
 				now=time.time()
 				if now-self.last_linedrop>=self.speed:
@@ -338,6 +372,8 @@ to help the player manipulate it above the Skyline.
 					self.last_linedrop=now
 					self.linedrop()
 					self.boss.gameLock.release()
+
+		raise "Only the run() method should set the phase flag"
 
 
 	def linedrop(self):
@@ -362,7 +398,7 @@ to help the player manipulate it above the Skyline.
 
 	def lock_down(self):
 		for x,y in self.active['coords']:
-			pass#self.GM[]
+			self.GM[x][y]=='B'
 
 	def pattern_phase(self):
 		"""
