@@ -130,14 +130,6 @@ init(master, blocksize=30, level=1)
 		if self.ingame and not self.paused:
 			self.gameThread.call_soft_drop()
 
-	def arrow_right(self, event):
-		if self.ingame and not self.paused:
-			self.gameThread.call_move_right()
-
-	def arrow_left(self, event):
-		if self.ingame and not self.paused:
-			self.gameThread.call_move_left()
-
 	def button_space(self, event):
 		if self.ingame and not self.paused:
 			self.gameThread.call_hard_drop()
@@ -271,6 +263,7 @@ class GameEngine(threading.Thread):
 		self.soft_drop_flag=True
 
 	def soft_drop(self):
+		"Method which excecutes a soft drop whenever off cooldown."
 		self.soft_drop_flag=False
 		now=time.time()
 		if now-self.last_linedrop<(self.speed/20):
@@ -288,6 +281,7 @@ class GameEngine(threading.Thread):
 		self.hard_drop_flag=True
 
 	def hard_drop(self):
+		"Method which excecutes a Hard Drop"
 		#How much is it possible to drop?
 		distance=self.distance_from_surface()
 
@@ -318,12 +312,6 @@ class GameEngine(threading.Thread):
 		"Counter-clockwise rotation event listener"
 		pass
 
-	def call_move_right(self):
-		"Set flag for moving the Tetromino to the right direction"
-		if self.phase not in ("falling", "locking"):
-			return
-		self.move_right_flag=True
-
 	def move_right(self):
 		"Attemps to move the Tetromino one block right. Returns True if successful and False if not."
 		self.move_right_flag=False
@@ -347,13 +335,6 @@ class GameEngine(threading.Thread):
 			self.can.move(block, self.blocksize, 0)
 		self.ghost_adjust()
 		return True
-
-	def call_move_left(self):
-		"Set flag for moving the Tetromino to the left direction"
-
-		if self.phase not in ("falling", "locking"):
-			return
-		self.move_left_flag=True
 
 	def move_left(self):
 		"Attemps to move the Tetromino one block left. Returns True if successful and False if not."
@@ -381,6 +362,7 @@ class GameEngine(threading.Thread):
 		return True
 
 	def ghost_adjust(self):
+		"This method adjusts the ghost piece to the new position. Each turn or horizontal move action should call this."
 		distance=self.distance_from_surface()
 		bs=self.blocksize
 		i=0
@@ -557,6 +539,7 @@ to help the player manipulate it above the Skyline.
 
 
 	def lock_down(self):
+		"Sets the Tetromino to the permanent state, deletes the ghost piece"
 		for x,y in self.active['coords']:
 			self.GM[x][y]='B'
 		for x in self.ghost:
