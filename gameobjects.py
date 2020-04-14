@@ -103,8 +103,8 @@ init(master, blocksize=30, level=1)
 
 
 		#Bindings
-		self.bind("<Destroy>", self._destroy)
-
+		#self.bind("<Destroy>", self._destroy)
+		self.master.protocol("WM_DELETE_WINDOW", self._destroy)
 		self.master.bind("<Down>", self.arrow_down)
 		self.master.bind("<Right>", self.arrow_right)
 		self.master.bind("<Left>", self.arrow_left)
@@ -114,9 +114,11 @@ init(master, blocksize=30, level=1)
 		self.startButton = Button(self, text="PLAY", command=self.start_new_game)
 		self.startButton.grid(row=0)
 
-	def _destroy(self,event):
+	def _destroy(self):
 		if self.ingame:
 			self.gameThread.call_quit()
+		self.master.after(200,self.master.destroy)
+
 	def start_new_game(self):
 		if not self.ingame:
 			self.ingame=True
@@ -197,6 +199,8 @@ class GameEngine(threading.Thread):
 					print("Locked!")
 		except AbandonException as e:
 			print(type(e))
+		except Exception as e:
+			print(e)
 
 
 	def call_soft_drop(self):
@@ -395,10 +399,8 @@ to help the player manipulate it above the Skyline.
 			else:
 				now=time.time()
 				if now-self.last_linedrop>=self.speed:
-					self.boss.gameLock.acquire()
 					self.last_linedrop=now
 					self.linedrop()
-					self.boss.gameLock.release()
 
 		raise "Only the run() method should set the phase flag"
 
