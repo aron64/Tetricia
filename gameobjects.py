@@ -636,7 +636,7 @@ This system allows for equal distribution among the seven Tetriminos.
 		if len(self.bag)==0:
 			self.bag=self.minos.copy()
 			shuffle(self.bag)
-		self.queue_forward(ret)
+		self.queue_forward(self.next_queue[-1])
 		return ret
 
 	def queue_forward(self, mino, delete=True):
