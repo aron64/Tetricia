@@ -174,26 +174,27 @@ class GameEngine(threading.Thread):
 
 	def run(self):
 		try:
-			self.boss.ingame=True
-			self.phase = "generation"
-			if self.generation_phase():
-				self.phase="falling"
-				locked=False
-				while not locked:
-					if self.phase=="falling":
-						locked=self.falling_phase()
-						if not locked:
-							self.phase="locking"
-					elif self.phase=="locking":
-						locked=self.lock_phase()
-						if not locked:
-							self.phase="falling"
-					else:
-					# if self.phase="pattern":
-					# 	self.pattern_phase()
-						raise "This should've never occur!"
-				self.phase="pattern"
-				print("Locked!")
+			while True:
+				self.boss.ingame=True
+				self.phase = "generation"
+				if self.generation_phase():
+					self.phase="falling"
+					locked=False
+					while not locked:
+						if self.phase=="falling":
+							locked=self.falling_phase()
+							if not locked:
+								self.phase="locking"
+						elif self.phase=="locking":
+							locked=self.lock_phase()
+							if not locked:
+								self.phase="falling"
+						else:
+						# if self.phase="pattern":
+						# 	self.pattern_phase()
+							raise "This should've never occur!"
+					self.phase="pattern"
+					print("Locked!")
 		except AbandonException as e:
 			print(type(e))
 
@@ -226,14 +227,13 @@ class GameEngine(threading.Thread):
 		min_d=40
 		for x,y in self.active['coords']:
 			y0=0
-			
 			if min_d>y-y0:
 				min_d=y-y0
 
 			for y0 in range(0,y):
 				if self.GM[x][y0]=='B':
-					if min_d>y-y0:
-						min_d=y-y0
+					if min_d>y-y0-1:
+						min_d=y-y0-1
 
 		[self.linedrop() for x in range(min_d)]
 		self.score['Hard Drop']=min_d
@@ -429,6 +429,7 @@ to help the player manipulate it above the Skyline.
 
 			if self.counter==15:
 				self.lock_down()
+				print("FORCED DOWN")
 				return True
 			#Hard Drop?
 			if self.hard_drop_flag:
@@ -457,7 +458,7 @@ to help the player manipulate it above the Skyline.
 
 	def lock_down(self):
 		for x,y in self.active['coords']:
-			self.GM[x][y]=='B'
+			self.GM[x][y]='B'
 
 	def pattern_phase(self):
 		"""
@@ -500,7 +501,7 @@ Points are awarded to the player according to the Tetris Scoring System, as seen
 				return True
 
 	def game_over(self):
-		pass
+		raise GameOverException()
 
 class Bag:
 	"""
@@ -552,7 +553,9 @@ This system allows for equal distribution among the seven Tetriminos.
 class AbandonException(Exception):
 	"""Exception occurs when the player quits during an ongoing (either paused or unpaused) game. This serves the purpose of closing down threads."""
 	pass
-		
+class GameOverException(Exception):
+	"""Exception occurs when the game is over. This serves the purpose of closing down threads."""
+	pass
 
 if __name__ == '__main__':
 	root=Tk()
@@ -564,5 +567,5 @@ if __name__ == '__main__':
 
 #TODO
 #Ghost Piece ~ Hard Drop...
-#Locking phase
-#5.2 Auto-repeat
+#5.2 Auto-repeat: Need to listen to releases, the default tkinter press bind is not enough for this game.
+#				  This is also why the unused pynput.keyboard is imported upon start.
