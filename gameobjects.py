@@ -10,7 +10,7 @@
 """
 Tetrícia
 
-Some function definitions are fully or partially taken from the 2009 Tetris Guideline:
+Some function descriptions are fully or partially taken from the 2009 Tetris Guideline:
 https://www.dropbox.com/s/g55gwls0h2muqzn/tetris_guideline_docs_2009.zip?dl=0
 https://tetris.fandom.com/wiki/Tetris_Guideline
 """
@@ -25,6 +25,49 @@ class I:
 	"""I - Tetromino behaviour description"""
 	def generate():
 		return {'type': I, 'coords': [(x,20) for x in range(3,7)], 'rot': 'N', 'color':'#00ffff'}
+	def_west=[(4,3),(4,4),(4,5),(4,6)]
+	def_north=[(3,5),(4,5),(5,5),(6,5)]
+	Defaults={'W':[(4,3),(4,4),(4,5),(4,6)],
+			  'N':[(3,5),(4,5),(5,5),(6,5)],
+			  'E':[(5,3),(5,4),(5,5),(5,6)],
+			  'S':[(3,4),(4,4),(5,4),(6,4)]}
+	Points={'W':[(4,5),(4,5),(4,5),(4,3),(4,6)],
+			'N':[(4,5),(3,5),(6,5),(3,5),(6,5)],
+			'E':[(4,5),(5,5),(5,5),(5,6),(5,3)],
+			'S':[(4,5),(6,5),(3,5),(6,4),(3,4)],}
+	
+	def rotate(from_, to_, coords, matrix):
+
+		for P in range(5):
+			#return I.west(P,I.Points['N'][P])
+			#new_coords=I.west(P,I.Points['N'][P])
+
+			p=I.Points[to_][P]
+			dest=I.Points[from_][P]
+			shift=(dest[0]-p[0],dest[1]-p[1])
+
+			print(shift)
+			new_coords=[]
+			for x,y in I.Defaults[to_]:
+				new_coords.append((x+shift[0], y+shift[1]))
+
+			#The difference between the old and the new coordinates
+			map_shift=[(new_coords[x][0]-I.Defaults[from_][x][0], new_coords[x][1]-I.Defaults[from_][x][1]) for x in range(4)]
+
+			#The real new coordinates
+			map_coords=[(coords[x][0]+map_shift[x][0], coords[x][1]+map_shift[x][1]) for x in range(4)]
+			#Test these
+			failed=False
+			for x,y in map_coords:
+				if x<0 or y<0 or x>9 or y>40 or matrix[x][y]=='B':
+					failed=True
+					break
+
+			if failed:continue
+			return map_coords
+
+#TDD I rotate xd
+#print(I.rotate('N','W',I.generate()['coords'],[[0]*40 for x in range(10)]))
 
 class T:
 	"""T - Tetromino behaviour description"""
@@ -56,6 +99,8 @@ class O:
 	def generate():
 		return {'type': O, 'coords': [(5,20),(6,20), (5,21),(6,21)], 'rot': 'N', 'color':'#ffff00'}
 		
+
+
 
 class GameDashboard(Frame):
 	"""
@@ -106,7 +151,7 @@ init(master, blocksize=30, level=1)
 		#self.bind("<Destroy>", self._destroy)
 		self.master.protocol("WM_DELETE_WINDOW", self._destroy)
 		self.master.bind("<Down>", self.arrow_down)
-		# self.master.bind("<Right>", self.arrow_right)
+		self.master.bind("<Up>", self.arrow_up)
 		# self.master.bind("<Left>", self.arrow_left)
 		self.master.bind("<space>", self.button_space)
 
@@ -129,6 +174,10 @@ init(master, blocksize=30, level=1)
 	def arrow_down(self, event):
 		if self.ingame and not self.paused:
 			self.gameThread.call_soft_drop()
+
+	def arrow_up(self,event):
+		if self.ingame and not self.paused:
+			self.gameThread.call_rotate_cw()
 
 	def button_space(self, event):
 		if self.ingame and not self.paused:
@@ -169,7 +218,6 @@ class GameEngine(threading.Thread):
 		self.multiplier=[100,300,500,800,100,200,400,800,1200,1600, 0.5, 1,2]
 		self.score={}
 		self.gameScore=0
-
 		
 		# When any single button is then released, the Tetrimino should again move in the direction still held,
 		# with the Auto-Repeat delay of roughly 0.3 seconds applied once more.
@@ -305,11 +353,52 @@ class GameEngine(threading.Thread):
 						min_d=y-y0-1
 		return min_d
 
+	def get_quarter(self, original, direction):
+		"Original quarter: NSWE: 1 char\nDirection: Left=-1, Right=+1"
+		qrtrs=['E', 'N', 'W', 'S', 'E']
+		return qrtrs[qrtrs.index(original)+direction]
+
+	def call_rotate_cw(self):
+		"Set flag for a Clockwise Rotation"
+		if self.phase not in ("falling", "locking"):
+			return
+		self.rotate_cw_flag=True
+
 	def rotate_cw(self):
-		"Clockwise rotation event listener"
-		pass
+		"Clockwise rotation event = RIGHT"
+		#Reset flag
+		self.rotate_cw_flag=False
+		bs=self.blocksize
+
+		src=self.active['rot']
+		dest=self.get_quarter(src,1)
+
+		new_coords=self.active['type'].rotate(src, dest, self.active['coords'], self.GM)
+		if new_coords==None:
+			return False
+		#Rotation succeeded
+		self.last_action=time.time()
+		self.active['rot']=dest
+
+		for x,y in self.active['coords']:
+			self.GM[x][y]=0
+		self.active['coords']=new_coords[:]
+		for x,y in new_coords:
+			self.GM[x][y]='A'
+
+		#Visual
+		#Replace the objects
+		for i in range(4):
+			x,y=self.active['coords'][i]
+			self.can.coords(self.active['objects'][i], 2+(bs*x),-(y-19)*bs,2+bs+(bs*x), -(y-20)*bs)
+
+		#Adjust ghost
+		self.ghost_adjust()
+		return True
+
+
 	def rotate_ccw(self):
-		"Counter-clockwise rotation event listener"
+		"Counter-clockwise rotation event listener = LEFT"
 		pass
 
 	def move_right(self):
@@ -404,6 +493,8 @@ to help the player manipulate it above the Skyline.
 		#Move?
 		self.move_left_flag=False
 		self.move_right_flag=False
+		#Rotate?
+		self.rotate_cw_flag=False
 
 		#Action counter in locking phasee
 		self.counter=0
@@ -452,6 +543,8 @@ to help the player manipulate it above the Skyline.
 			#Soft Drop?
 			if self.soft_drop_flag:
 				self.soft_drop()
+			if self.rotate_cw_flag and self.active['type']==I:
+				self.rotate_cw()
 			if self.pressed:
 				now=time.time()
 				if self.timer_repeat==0:
@@ -514,7 +607,10 @@ to help the player manipulate it above the Skyline.
 
 			#Soft Drop?
 			#Once the surface is reached, Soft Drop should not auto-repeat, rather just wait out the 0.5 sec to lock down.
-
+			#rotation?
+			if self.rotate_cw_flag and self.active['type']==I:
+				act=self.rotate_cw()
+				if act:self.counter+=1
 			if self.pressed:
 				do=False
 				now=time.time()
@@ -651,5 +747,5 @@ if __name__ == '__main__':
 
 
 #TODO
-#The bag is doing some crazy shit
 #SRS
+#Lowest line reached and lock phase counter
