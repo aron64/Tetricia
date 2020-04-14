@@ -19,7 +19,7 @@ https://tetris.fandom.com/wiki/Tetris_Guideline
 from tkinter import *
 from random import randrange,shuffle
 import threading,time
-from pynput import keyboard
+from pynput.keyboard import Key, Listener
 
 class I:
 	"""I - Tetromino behaviour description"""
@@ -106,8 +106,8 @@ init(master, blocksize=30, level=1)
 		#self.bind("<Destroy>", self._destroy)
 		self.master.protocol("WM_DELETE_WINDOW", self._destroy)
 		self.master.bind("<Down>", self.arrow_down)
-		self.master.bind("<Right>", self.arrow_right)
-		self.master.bind("<Left>", self.arrow_left)
+		# self.master.bind("<Right>", self.arrow_right)
+		# self.master.bind("<Left>", self.arrow_left)
 		self.master.bind("<space>", self.button_space)
 
 		#Button for test
@@ -144,13 +144,17 @@ init(master, blocksize=30, level=1)
 
 class GameEngine(threading.Thread):
 	"""docstring for GameEngine"""
-	def __init__(self, boss, can, blocksize, level,bag):
+	def __init__(self, boss, can, blocksize, level,bag, left=Key.left, right=Key.right):
 		threading.Thread.__init__(self)
 		self.boss = boss
 		self.can = can
 		self.blocksize = blocksize
 		self.level = level
 		self.bag=bag
+
+		#Button bindings
+		self.left=left
+		self.right=right
 
 		#Game Phase tracker
 		self.phase="Inactive"
@@ -171,6 +175,50 @@ class GameEngine(threading.Thread):
 		self.multiplier=[100,300,500,800,100,200,400,800,1200,1600, 0.5, 1,2]
 		self.score={}
 		self.gameScore=0
+
+		# Keyboard listening
+		self.pressed=False
+		# When any single button is then released, the Tetrimino should again move in the direction still held,
+		# with the Auto-Repeat delay of roughly 0.3 seconds applied once more.
+		self.held={}
+		# The method to repeat
+		self.to_repeat=None
+		
+		# Can we be repeating yet?
+		self.timer_repeat=0
+		# secondary timer for the repeat phase
+		self.last_repeat=0
+		self.kb_listen=Listener(on_press=self.on_press, on_release=self.on_release)
+		self.kb_listen.start()
+
+	def on_press(self, key):
+		if self.pressed==key:
+			return True
+		else:
+			if key==Key.left:
+				self.pressed=key
+				self.to_repeat=self.move_left
+				self.held[key]=True
+			elif key==Key.right:
+				self.pressed=key
+				self.held[key]=True
+				self.to_repeat=self.move_right
+
+
+	def on_release(self,key):
+		if self.pressed==key:
+			self.pressed=False
+			self.last_repeat=0
+			self.timer_repeat=0
+			self.held[key]=False
+
+		# Check if another key was held through a press-release
+		for key in self.held:
+			if self.held[key]:
+				self.on_press(key)
+				break
+
+
 	def call_quit(self):
 		self.abandon=True
 
@@ -368,7 +416,7 @@ to help the player manipulate it above the Skyline.
 		self.active['objects']=[]
 		for x,y in self.active['coords']:
 			self.GM[x][y]='A'
-			self.active['objects'].append(self.can.create_rectangle(0+(bs*x),-(y-19)*bs,bs+(bs*x), -(y-20)*bs, fill=self.active['color']))
+			self.active['objects'].append(self.can.create_rectangle(2+(bs*x),-(y-19)*bs+1,2+bs+(bs*x), -(y-20)*bs+1, fill=self.active['color']))
 		print(self.active)
 		return 1
 
@@ -391,11 +439,19 @@ to help the player manipulate it above the Skyline.
 			#Soft Drop?
 			if self.soft_drop_flag:
 				self.soft_drop()
-			#Soft Drop?
-			elif self.move_left_flag:
-				self.move_left()
-			elif self.move_right_flag:
-				self.move_right()
+			if self.pressed:
+				now=time.time()
+				if self.timer_repeat==0:
+					self.timer_repeat=now
+					self.to_repeat()
+				elif self.last_repeat==0:
+					if now-self.timer_repeat>=0.3:
+						self.last_repeat=now
+						self.to_repeat()
+				elif now-self.last_repeat>=0.03:
+					self.last_repeat=now
+					self.to_repeat()
+
 			else:
 				now=time.time()
 				if now-self.last_linedrop>=self.speed:
@@ -446,12 +502,23 @@ to help the player manipulate it above the Skyline.
 			#Soft Drop?
 			#Once the surface is reached, Soft Drop should not auto-repeat, rather just wait out the 0.5 sec to lock down.
 
-			elif self.move_left_flag:
-				act=self.move_left()
-				if act:self.counter+=1
-			elif self.move_right_flag:
-				act=self.move_right()
-				if act:self.counter+=1
+			if self.pressed:
+				do=False
+				now=time.time()
+				if self.timer_repeat==0:
+					self.timer_repeat=now
+					do=True
+				elif self.last_repeat==0:
+					if now-self.timer_repeat>=0.3:
+						self.last_repeat=now
+						do=True
+				elif now-self.last_repeat>=0.03:
+					self.last_repeat=now
+					do=True
+				if do:
+					act=self.to_repeat()
+					if act:self.counter+=1
+
 			else:
 				if time.time()-self.last_action>=0.5:
 					self.lock_down()
@@ -569,5 +636,3 @@ if __name__ == '__main__':
 
 #TODO
 #Ghost Piece ~ Hard Drop...
-#5.2 Auto-repeat: Need to listen to releases, the default tkinter press bind is not enough for this game.
-#				  This is also why the unused pynput.keyboard is imported upon start.
