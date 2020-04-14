@@ -35,39 +35,6 @@ class I:
 			'N':[(4,5),(3,5),(6,5),(3,5),(6,5)],
 			'E':[(4,5),(5,5),(5,5),(5,6),(5,3)],
 			'S':[(4,5),(6,5),(3,5),(6,4),(3,4)],}
-	
-	def rotate(from_, to_, coords, matrix):
-
-		for P in range(5):
-			#return I.west(P,I.Points['N'][P])
-			#new_coords=I.west(P,I.Points['N'][P])
-
-			p=I.Points[to_][P]
-			dest=I.Points[from_][P]
-			shift=(dest[0]-p[0],dest[1]-p[1])
-
-			print(shift)
-			new_coords=[]
-			for x,y in I.Defaults[to_]:
-				new_coords.append((x+shift[0], y+shift[1]))
-
-			#The difference between the old and the new coordinates
-			map_shift=[(new_coords[x][0]-I.Defaults[from_][x][0], new_coords[x][1]-I.Defaults[from_][x][1]) for x in range(4)]
-
-			#The real new coordinates
-			map_coords=[(coords[x][0]+map_shift[x][0], coords[x][1]+map_shift[x][1]) for x in range(4)]
-			#Test these
-			failed=False
-			for x,y in map_coords:
-				if x<0 or y<0 or x>9 or y>40 or matrix[x][y]=='B':
-					failed=True
-					break
-
-			if failed:continue
-			return map_coords
-
-#TDD I rotate xd
-#print(I.rotate('N','W',I.generate()['coords'],[[0]*40 for x in range(10)]))
 
 class T:
 	"""T - Tetromino behaviour description"""
@@ -152,7 +119,7 @@ init(master, blocksize=30, level=1)
 		self.master.protocol("WM_DELETE_WINDOW", self._destroy)
 		self.master.bind("<Down>", self.arrow_down)
 		self.master.bind("<Up>", self.arrow_up)
-		# self.master.bind("<Left>", self.arrow_left)
+		self.master.bind("<Control_L>", self.ctrl_l)
 		self.master.bind("<space>", self.button_space)
 
 		#Button for test
@@ -178,7 +145,9 @@ init(master, blocksize=30, level=1)
 	def arrow_up(self,event):
 		if self.ingame and not self.paused:
 			self.gameThread.call_rotate_cw()
-
+	def ctrl_l(self,event):
+		if self.ingame and not self.paused:
+			self.gameThread.call_rotate_ccw()
 	def button_space(self, event):
 		if self.ingame and not self.paused:
 			self.gameThread.call_hard_drop()
@@ -245,8 +214,8 @@ class GameEngine(threading.Thread):
 		else:
 			if key==Key.left:
 				self.pressed=key
-				self.to_repeat=self.move_left
 				self.held[key]=True
+				self.to_repeat=self.move_left
 			elif key==Key.right:
 				self.pressed=key
 				self.held[key]=True
@@ -259,12 +228,13 @@ class GameEngine(threading.Thread):
 			self.last_repeat=0
 			self.timer_repeat=0
 			self.held[key]=False
-
-		# Check if another key was held through a press-release
-		for key in self.held:
-			if self.held[key]:
-				self.on_press(key)
-				break
+			# Check if another key was held through a press-release
+			for key in self.held:
+				if self.held[key]:
+					self.on_press(key)
+					break
+		elif key in self.held:
+			self.held[key]=False
 
 
 	def call_quit(self):
@@ -355,8 +325,8 @@ class GameEngine(threading.Thread):
 
 	def get_quarter(self, original, direction):
 		"Original quarter: NSWE: 1 char\nDirection: Left=-1, Right=+1"
-		qrtrs=['E', 'N', 'W', 'S', 'E']
-		return qrtrs[qrtrs.index(original)+direction]
+		qrtrs=['E', 'N', 'W', 'S']
+		return qrtrs[(qrtrs.index(original)+direction)%4]
 
 	def call_rotate_cw(self):
 		"Set flag for a Clockwise Rotation"
@@ -364,16 +334,27 @@ class GameEngine(threading.Thread):
 			return
 		self.rotate_cw_flag=True
 
-	def rotate_cw(self):
+	def call_rotate_ccw(self):
+		"Set flag for a Clockwise Rotation"
+		if self.phase not in ("falling", "locking"):
+			return
+		self.rotate_ccw_flag=True
+
+	def rotate(self, counter_clockwise=False):
 		"Clockwise rotation event = RIGHT"
 		#Reset flag
-		self.rotate_cw_flag=False
+		if counter_clockwise:
+			self.rotate_ccw_flag=False
+			direction=1
+		else:
+			self.rotate_cw_flag=False
+			direction=-1
 		bs=self.blocksize
 
 		src=self.active['rot']
-		dest=self.get_quarter(src,1)
+		dest=self.get_quarter(src,direction)
 
-		new_coords=self.active['type'].rotate(src, dest, self.active['coords'], self.GM)
+		new_coords=self.SRS(src, dest, self.active['coords'], self.GM,self.active['type'])
 		if new_coords==None:
 			return False
 		#Rotation succeeded
@@ -397,9 +378,35 @@ class GameEngine(threading.Thread):
 		return True
 
 
-	def rotate_ccw(self):
-		"Counter-clockwise rotation event listener = LEFT"
-		pass
+
+	def SRS(self,from_, to_, coords, matrix, Tetromino):
+		"Super Rotation System - coordinate calculor"
+		for P in range(5):
+			#return I.west(P,I.Points['N'][P])
+			#new_coords=I.west(P,I.Points['N'][P])
+
+			p=Tetromino.Points[to_][P]
+			dest=Tetromino.Points[from_][P]
+			shift=(dest[0]-p[0],dest[1]-p[1])
+
+			new_coords=[]
+			for x,y in Tetromino.Defaults[to_]:
+				new_coords.append((x+shift[0], y+shift[1]))
+
+			#The difference between the old and the new coordinates
+			map_shift=[(new_coords[x][0]-Tetromino.Defaults[from_][x][0], new_coords[x][1]-Tetromino.Defaults[from_][x][1]) for x in range(4)]
+
+			#The real new coordinates
+			map_coords=[(coords[x][0]+map_shift[x][0], coords[x][1]+map_shift[x][1]) for x in range(4)]
+			#Test these
+			failed=False
+			for x,y in map_coords:
+				if x<0 or y<0 or x>9 or y>40 or matrix[x][y]=='B':
+					failed=True
+					break
+
+			if failed:continue
+			return map_coords
 
 	def move_right(self):
 		"Attemps to move the Tetromino one block right. Returns True if successful and False if not."
@@ -490,12 +497,10 @@ to help the player manipulate it above the Skyline.
 		self.hard_drop_flag=False
 		#Soft drop?
 		self.soft_drop_flag=False
-		#Move?
-		self.move_left_flag=False
-		self.move_right_flag=False
+
 		#Rotate?
 		self.rotate_cw_flag=False
-
+		self.rotate_ccw_flag=False
 		#Action counter in locking phasee
 		self.counter=0
 
@@ -544,7 +549,10 @@ to help the player manipulate it above the Skyline.
 			if self.soft_drop_flag:
 				self.soft_drop()
 			if self.rotate_cw_flag and self.active['type']==I:
-				self.rotate_cw()
+				self.rotate()
+			elif self.rotate_ccw_flag and self.active['type']==I:
+				self.rotate(True)
+
 			if self.pressed:
 				now=time.time()
 				if self.timer_repeat==0:
@@ -558,11 +566,10 @@ to help the player manipulate it above the Skyline.
 					self.last_repeat=now
 					self.to_repeat()
 
-			else:
-				now=time.time()
-				if now-self.last_linedrop>=self.speed:
-					self.last_linedrop=now
-					self.linedrop()
+			now=time.time()
+			if now-self.last_linedrop>=self.speed:
+				self.last_linedrop=now
+				self.linedrop()
 
 		raise "Only the run() method should set the phase flag"
 
@@ -591,6 +598,11 @@ to help the player manipulate it above the Skyline.
 			if self.abandon:raise AbandonException()
 			if self.boss.paused: continue
 
+			#Atop Surface?
+			if not self.touching_surface():
+				#return to main cycle
+				return False
+
 			if self.counter==15:
 				self.lock_down()
 				print("FORCED DOWN")
@@ -600,16 +612,15 @@ to help the player manipulate it above the Skyline.
 				self.hard_drop()
 				return True
 
-			#Atop Surface?
-			if not self.touching_surface():
-				#return to main cycle
-				return False
 
 			#Soft Drop?
 			#Once the surface is reached, Soft Drop should not auto-repeat, rather just wait out the 0.5 sec to lock down.
 			#rotation?
 			if self.rotate_cw_flag and self.active['type']==I:
-				act=self.rotate_cw()
+				act=self.rotate()
+				if act:self.counter+=1
+			elif self.rotate_ccw_flag and self.active['type']==I:
+				act=self.rotate(True)
 				if act:self.counter+=1
 			if self.pressed:
 				do=False
@@ -628,10 +639,9 @@ to help the player manipulate it above the Skyline.
 					act=self.to_repeat()
 					if act:self.counter+=1
 
-			else:
-				if time.time()-self.last_action>=0.5:
-					self.lock_down()
-					return True
+			if time.time()-self.last_action>=0.5:
+				self.lock_down()
+				return True
 
 
 	def lock_down(self):
