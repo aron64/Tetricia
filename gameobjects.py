@@ -170,17 +170,20 @@ class GameEngine(threading.Thread):
 
 		#Initialize the active Tetromino's namespace
 		self.active=None
+		#The ghost piece
+		self.ghost=None
 
 		self.bonuses=["Single","Double","Triple","Tetris","Mini T-Spin","Mini T-Spin Single","T-Spin","T-Spin Single","T-Spin Double","T-Spin Triple","Back-to-Back Bonus","Soft Drop","Hard Drop"]
 		self.multiplier=[100,300,500,800,100,200,400,800,1200,1600, 0.5, 1,2]
 		self.score={}
 		self.gameScore=0
 
-		# Keyboard listening
-		self.pressed=False
+		
 		# When any single button is then released, the Tetrimino should again move in the direction still held,
 		# with the Auto-Repeat delay of roughly 0.3 seconds applied once more.
-		self.held={}
+		self.auto_repeat_delay=0.3
+		self.auto_repeat_speed=0.04
+
 		# The method to repeat
 		self.to_repeat=None
 		
@@ -188,6 +191,11 @@ class GameEngine(threading.Thread):
 		self.timer_repeat=0
 		# secondary timer for the repeat phase
 		self.last_repeat=0
+
+		# Keyboard listening
+		self.pressed=False
+		self.held={}
+
 		self.kb_listen=Listener(on_press=self.on_press, on_release=self.on_release)
 		self.kb_listen.start()
 
@@ -245,8 +253,13 @@ class GameEngine(threading.Thread):
 							raise "This should've never occur!"
 					self.phase="pattern"
 					print("Locked!")
-		except AbandonException as e:
-			print(type(e))
+				else:
+					print("OVER")
+					break
+		except AbandonException:
+			print("Player abandoned.")
+		except GameOverException:
+			print("The game was over.")
 		except Exception as e:
 			print(e)
 
@@ -276,6 +289,16 @@ class GameEngine(threading.Thread):
 
 	def hard_drop(self):
 		#How much is it possible to drop?
+		distance=self.distance_from_surface()
+
+		[self.linedrop() for x in range(distance)]
+		self.score['Hard Drop']=distance
+		self.lock_down()
+		self.hard_drop_flag=False
+
+	def distance_from_surface(self):
+		"Finds the lowest distance between an open surface and the active Tetromino"
+		#How much is it possible to drop?
 		min_d=40
 		for x,y in self.active['coords']:
 			y0=0
@@ -286,12 +309,7 @@ class GameEngine(threading.Thread):
 				if self.GM[x][y0]=='B':
 					if min_d>y-y0-1:
 						min_d=y-y0-1
-
-		[self.linedrop() for x in range(min_d)]
-		self.score['Hard Drop']=min_d
-		self.lock_down()
-		self.hard_drop_flag=False
-
+		return min_d
 
 	def rotate_cw(self):
 		"Clockwise rotation event listener"
@@ -327,7 +345,7 @@ class GameEngine(threading.Thread):
 		#Visual
 		for block in self.active['objects']:
 			self.can.move(block, self.blocksize, 0)
-
+		self.ghost_adjust()
 		return True
 
 	def call_move_left(self):
@@ -359,8 +377,16 @@ class GameEngine(threading.Thread):
 		#Visual
 		for block in self.active['objects']:
 			self.can.move(block, -self.blocksize, 0)
-
+		self.ghost_adjust()
 		return True
+
+	def ghost_adjust(self):
+		distance=self.distance_from_surface()
+		bs=self.blocksize
+		i=0
+		for x,y in self.active['coords']:
+			self.can.coords(self.ghost[i],2+(bs*x),-(y-19-distance)*bs,2+bs+(bs*x), -(y-20-distance)*bs)
+			i+=1
 
 	def generation_phase(self):
 		"""
@@ -416,8 +442,13 @@ to help the player manipulate it above the Skyline.
 		self.active['objects']=[]
 		for x,y in self.active['coords']:
 			self.GM[x][y]='A'
-			self.active['objects'].append(self.can.create_rectangle(2+(bs*x),-(y-19)*bs+1,2+bs+(bs*x), -(y-20)*bs+1, fill=self.active['color']))
+			self.active['objects'].append(self.can.create_rectangle(2+(bs*x),-(y-19)*bs,2+bs+(bs*x), -(y-20)*bs, fill=self.active['color']))
 		print(self.active)
+		distance=self.distance_from_surface()
+		self.ghost=[]
+		for x,y in self.active['coords']:
+			self.ghost.append(self.can.create_rectangle(2+(bs*x),-(y-19-distance)*bs,2+bs+(bs*x), -(y-20-distance)*bs, outline=self.active['color']))
+		#self.ghost={'coords':[self.active['coords'][x][0], self.active['coords'][x][1]-distance_from_surface]}
 		return 1
 
 	def falling_phase(self):
@@ -445,10 +476,10 @@ to help the player manipulate it above the Skyline.
 					self.timer_repeat=now
 					self.to_repeat()
 				elif self.last_repeat==0:
-					if now-self.timer_repeat>=0.3:
+					if now-self.timer_repeat>=self.auto_repeat_delay:
 						self.last_repeat=now
 						self.to_repeat()
-				elif now-self.last_repeat>=0.03:
+				elif now-self.last_repeat>=self.auto_repeat_speed:
 					self.last_repeat=now
 					self.to_repeat()
 
@@ -509,10 +540,10 @@ to help the player manipulate it above the Skyline.
 					self.timer_repeat=now
 					do=True
 				elif self.last_repeat==0:
-					if now-self.timer_repeat>=0.3:
+					if now-self.timer_repeat>=self.auto_repeat_delay:
 						self.last_repeat=now
 						do=True
-				elif now-self.last_repeat>=0.03:
+				elif now-self.last_repeat>=self.auto_repeat_speed:
 					self.last_repeat=now
 					do=True
 				if do:
@@ -528,6 +559,8 @@ to help the player manipulate it above the Skyline.
 	def lock_down(self):
 		for x,y in self.active['coords']:
 			self.GM[x][y]='B'
+		for x in self.ghost:
+			self.can.delete(x)
 
 	def pattern_phase(self):
 		"""
@@ -635,4 +668,5 @@ if __name__ == '__main__':
 
 
 #TODO
-#Ghost Piece ~ Hard Drop...
+#The bag is doing some crazy shit
+#SRS
