@@ -257,7 +257,7 @@ class GameEngine(threading.Thread):
 			return True
 		else:
 			#Don't want to gain the lock unnecessarily
-			if key not in (Key.left, Key.right, Key.up, key.ctrl_l):return True
+			if key not in (Key.left, Key.right, Key.up, Key.ctrl_l):return True
 
 			self.boss.gameLock.acquire()
 			if key==Key.left:
@@ -611,6 +611,9 @@ to help the player manipulate it above the Skyline.
 		self.ghost=[]
 		for x,y in self.active['coords']:
 			self.ghost.append(self.can.create_rectangle(2+(bs*x),-(y-19-distance)*bs,2+bs+(bs*x), -(y-20-distance)*bs, outline=self.active['color']))
+		
+		for i in self.active['objects']:
+			self.can.tag_raise(i)
 		#self.ghost={'coords':[self.active['coords'][x][0], self.active['coords'][x][1]-distance_from_surface]}
 
 
@@ -632,6 +635,12 @@ to help the player manipulate it above the Skyline.
 			if self.touching_surface():
 				#return to main cycle
 				return False
+			now=time.time()
+			if now-self.last_linedrop>=self.speed:
+				self.last_linedrop=now
+				self.linedrop()
+				continue
+				
 			#Soft Drop?
 			if self.soft_drop_flag:
 				self.soft_drop()
@@ -654,10 +663,7 @@ to help the player manipulate it above the Skyline.
 					self.last_repeat=now
 					self.to_repeat()
 			self.boss.gameLock.release()
-			now=time.time()
-			if now-self.last_linedrop>=self.speed:
-				self.last_linedrop=now
-				self.linedrop()
+			
 
 		raise "Only the run() method should set the phase flag"
 
