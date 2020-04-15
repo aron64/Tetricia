@@ -722,7 +722,9 @@ to help the player manipulate it above the Skyline.
 		while self.phase=="locking":##time.time()-timer<0.5:
 			if self.abandon:raise AbandonException()
 			if self.boss.paused: continue
-
+			if self.hold:
+				self.generation_phase(True)
+				return False
 			#Still Atop Surface?
 			if not self.touching_surface():
 				#return to main cycle
