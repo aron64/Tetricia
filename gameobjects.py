@@ -230,7 +230,7 @@ class GameEngine(threading.Thread):
 		# When any single button is then released, the Tetrimino should again move in the direction still held,
 		# with the Auto-Repeat delay of roughly 0.3 seconds applied once more.
 		self.auto_repeat_delay=0.3
-		self.auto_repeat_speed=0.04
+		self.auto_repeat_speed=0.03
 
 		# The method to repeat
 		self.to_repeat=None
@@ -250,9 +250,14 @@ class GameEngine(threading.Thread):
 		self.kb_listen.start()
 
 	def on_press(self, key):
+
 		if self.pressed==key:
 			return True
 		else:
+			#Don't want to gain the lock unnecessarily
+			if key not in (Key.left, Key.right, Key.up, key.ctrl_l):return True
+
+			self.boss.gameLock.acquire()
 			if key==Key.left:
 				self.pressed=key
 				self.reset_auto_repeat_cooldowns()
@@ -271,15 +276,18 @@ class GameEngine(threading.Thread):
 				if self.ctrl_l_released:
 					self.ctrl_l_released=False
 					self.call_rotate_ccw()
+			self.boss.gameLock.release()
 
 
 
 
 	def on_release(self,key):
 		if self.pressed==key:
+			self.boss.gameLock.acquire()
 			self.pressed=False
 			self.reset_auto_repeat_cooldowns()
 			self.held[key]=False
+			self.boss.gameLock.release()
 			# Check if another key was held through a press-release
 			for key in self.held:
 				if self.held[key]:
@@ -628,6 +636,7 @@ to help the player manipulate it above the Skyline.
 			elif self.rotate_ccw_flag:
 				self.rotate(True)
 
+			self.boss.gameLock.acquire()
 			if self.pressed:
 				now=time.time()
 				if self.timer_repeat==0:
@@ -640,7 +649,7 @@ to help the player manipulate it above the Skyline.
 				elif now-self.last_repeat>=self.auto_repeat_speed:
 					self.last_repeat=now
 					self.to_repeat()
-
+			self.boss.gameLock.release()
 			now=time.time()
 			if now-self.last_linedrop>=self.speed:
 				self.last_linedrop=now
