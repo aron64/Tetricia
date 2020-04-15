@@ -161,9 +161,8 @@ init(master, blocksize=30, level=1)
 		#self.bind("<Destroy>", self._destroy)
 		self.master.protocol("WM_DELETE_WINDOW", self._destroy)
 		self.master.bind("<Down>", self.arrow_down)
-		self.master.bind("<Up>", self.arrow_up)
-		self.master.bind("<Control_L>", self.ctrl_l)
 		self.master.bind("<space>", self.button_space)
+		self.master.bind("c", self.button_c)
 
 		#Button for test
 		self.startButton = Button(self, text="PLAY", command=self.start_new_game)
@@ -185,15 +184,12 @@ init(master, blocksize=30, level=1)
 		if self.ingame and not self.paused:
 			self.gameThread.call_soft_drop()
 
-	def arrow_up(self,event):
-		if self.ingame and not self.paused:
-			self.gameThread.call_rotate_cw()
-	def ctrl_l(self,event):
-		if self.ingame and not self.paused:
-			self.gameThread.call_rotate_ccw()
 	def button_space(self, event):
 		if self.ingame and not self.paused:
 			self.gameThread.call_hard_drop()
+	def button_c(self, event):
+		if self.ingame and not self.paused:
+			self.gameThread.call_hold()
 
 class GameEngine(threading.Thread):
 	"""docstring for GameEngine"""
@@ -245,6 +241,8 @@ class GameEngine(threading.Thread):
 		self.last_repeat=0
 
 		# Keyboard listening
+		self.up_released=True
+		self.ctrl_l_released=True
 		self.pressed=False
 		self.held={}
 
@@ -257,19 +255,30 @@ class GameEngine(threading.Thread):
 		else:
 			if key==Key.left:
 				self.pressed=key
+				self.reset_auto_repeat_cooldowns()
 				self.held[key]=True
 				self.to_repeat=self.move_left
 			elif key==Key.right:
 				self.pressed=key
+				self.reset_auto_repeat_cooldowns()
 				self.held[key]=True
 				self.to_repeat=self.move_right
+			elif key==Key.up:
+				if self.up_released:
+					self.up_released=False
+					self.call_rotate_cw()
+			elif key==Key.ctrl_l:
+				if self.ctrl_l_released:
+					self.ctrl_l_released=False
+					self.call_rotate_ccw()
+
+
 
 
 	def on_release(self,key):
 		if self.pressed==key:
 			self.pressed=False
-			self.last_repeat=0
-			self.timer_repeat=0
+			self.reset_auto_repeat_cooldowns()
 			self.held[key]=False
 			# Check if another key was held through a press-release
 			for key in self.held:
@@ -278,6 +287,14 @@ class GameEngine(threading.Thread):
 					break
 		elif key in self.held:
 			self.held[key]=False
+		elif key==Key.up:
+			self.up_released=True
+		elif key==Key.ctrl_l:
+			self.ctrl_l_released=True
+
+	def reset_auto_repeat_cooldowns(self):
+		self.last_repeat=0
+		self.timer_repeat=0
 
 
 	def call_quit(self):
@@ -316,7 +333,12 @@ class GameEngine(threading.Thread):
 		except Exception as e:
 			print(e)
 
-
+	def call_hold(self):
+		"Set flag to hold the piece"
+		if self.phase not in ("falling", "locking"):
+			return
+		if self.hold==None:
+			self.hold=True
 	def call_soft_drop(self):
 		"Set flag for a Soft Drop"
 		if self.phase not in ("falling", "locking"):
@@ -509,7 +531,7 @@ class GameEngine(threading.Thread):
 			self.can.coords(self.ghost[i],2+(bs*x),-(y-19-distance)*bs,2+bs+(bs*x), -(y-20-distance)*bs)
 			i+=1
 
-	def generation_phase(self):
+	def generation_phase(self, from_hold=False):
 		"""
 Note: Pixels shown above the skyline (Point 3 below) currently not planned. - dev
 
@@ -540,10 +562,11 @@ to help the player manipulate it above the Skyline.
 		self.hard_drop_flag=False
 		#Soft drop?
 		self.soft_drop_flag=False
-
 		#Rotate?
 		self.rotate_cw_flag=False
 		self.rotate_ccw_flag=False
+
+
 		#Action counter in locking phasee
 		self.counter=0
 
@@ -553,12 +576,21 @@ to help the player manipulate it above the Skyline.
 		#Timing of the last action (move/rotate, NOT drop)
 		self.last_action=time.time()
 
+		#Can the player Hold this round
+		#Hold
+		#None: Last piece was taken from bag
+		#True: The flag was set to True, to make the Engine call generation_phase again.
+		#False: The last piece was taken from the Hold, so the player cannot swap again. (The flag wont be set to true in this case in the call)
+		if from_hold:
+			self.hold=False
+			self.active=self.in_hold.generate()
+		else:
 		### Pick up the next tetromino from the Next Queue
-		self.active=self.bag.next().generate()
+			self.hold=None
+			self.active=self.bag.next().generate()
 
 		if self.block_out(self.active['coords']):
 			self.game_over()
-			return
 
 		self.active['objects']=[]
 		for x,y in self.active['coords']:
