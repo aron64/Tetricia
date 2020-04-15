@@ -25,8 +25,6 @@ class I:
 	"""I - Tetromino behaviour description"""
 	def generate():
 		return {'type': I, 'coords': [(x,20) for x in range(3,7)], 'rot': 'N', 'color':'#00ffff'}
-	def_west=[(4,3),(4,4),(4,5),(4,6)]
-	def_north=[(3,5),(4,5),(5,5),(6,5)]
 	Defaults={'W':[(4,3),(4,4),(4,5),(4,6)],
 			  'N':[(3,5),(4,5),(5,5),(6,5)],
 			  'E':[(5,3),(5,4),(5,5),(5,6)],
@@ -40,7 +38,14 @@ class T:
 	"""T - Tetromino behaviour description"""
 	def generate():
 		return {'type': T, 'coords': [(x,20) for x in range(4,7)]+[(5,21)], 'rot': 'N', 'color':'#800080'}
-
+	Defaults={'W':[(4,3),(4,4),(4,5),(3,4)],
+			  'N':[(3,4),(4,4),(5,4),(4,5)],
+			  'E':[(4,5),(4,4),(4,3),(5,4)],
+			  'S':[(5,4),(4,4),(3,4),(4,3)]}
+	Points={'W':[(4,4),(3,4),(3,3),(4,6),(3,6)],
+			'N':[(4,4),(4,4),(4,4),(4,4),(4,4)],
+			'E':[(4,4),(5,4),(5,3),(4,6),(5,6)],
+			'S':[(4,4),(4,4),(4,4),(4,4),(4,4)]}
 class L:
 	"""L - Tetromino behaviour description"""
 	def generate():
@@ -548,9 +553,9 @@ to help the player manipulate it above the Skyline.
 			#Soft Drop?
 			if self.soft_drop_flag:
 				self.soft_drop()
-			if self.rotate_cw_flag and self.active['type']==I:
+			if self.rotate_cw_flag and self.active['type'] in (T,I):
 				self.rotate()
-			elif self.rotate_ccw_flag and self.active['type']==I:
+			elif self.rotate_ccw_flag and self.active['type'] in (T,I):
 				self.rotate(True)
 
 			if self.pressed:
@@ -616,10 +621,10 @@ to help the player manipulate it above the Skyline.
 			#Soft Drop?
 			#Once the surface is reached, Soft Drop should not auto-repeat, rather just wait out the 0.5 sec to lock down.
 			#rotation?
-			if self.rotate_cw_flag and self.active['type']==I:
+			if self.rotate_cw_flag and self.active['type'] in (T,I):
 				act=self.rotate()
 				if act:self.counter+=1
-			elif self.rotate_ccw_flag and self.active['type']==I:
+			elif self.rotate_ccw_flag and self.active['type'] in (T,I):
 				act=self.rotate(True)
 				if act:self.counter+=1
 			if self.pressed:
