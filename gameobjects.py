@@ -543,8 +543,6 @@ class GameEngine(threading.Thread):
 
 	def generation_phase(self, from_hold=False):
 		"""
-Note: Pixels shown above the skyline (Point 3 below) currently not planned. - dev
-
 The generation time of a Tetrimino is 0.2 seconds after the Lock Down of the previous Tetrimino.
 This slight delay happens as soon as the Completion Phase is finished.
 Generation time may change depending on the handling of the target platform.
@@ -846,6 +844,9 @@ class GameOverException(Exception):
 	pass
 
 if __name__ == '__main__':
+	
+	help(__name__)
+
 	root=Tk()
 	fr=GameDashboard(root)
 	fr.pack()
