@@ -213,6 +213,8 @@ class GameEngine(threading.Thread):
 		#Window closed?
 		self.abandon=False
 
+		#Hold slot
+		self.hold_slot=None
 		#Game Matrix
 		#A: Active Tetromino
 		#B: Block
@@ -584,14 +586,28 @@ to help the player manipulate it above the Skyline.
 		#Timing of the last action (move/rotate, NOT drop)
 		self.last_action=time.time()
 
+		if self.ghost:
+			for i in self.ghost:
+				self.can.delete(i)
 		#Can the player Hold this round
 		#Hold
 		#None: Last piece was taken from bag
 		#True: The flag was set to True, to make the Engine call generation_phase again.
 		#False: The last piece was taken from the Hold, so the player cannot swap again. (The flag wont be set to true in this case in the call)
 		if from_hold:
+			for x,y in self.active['coords']:
+				self.GM[x][y]=0
+			for i in self.active['objects']:
+				self.can.delete(i)
+			held=self.active['type']
+			if self.hold_slot==None:				
+				self.active=self.bag.next().generate()
+			else:
+				self.active=self.hold_slot.generate()
+
+			self.hold_slot=held
 			self.hold=False
-			self.active=self.in_hold.generate()
+			self.place_hold(self.hold_slot)
 		else:
 		### Pick up the next tetromino from the Next Queue
 			self.hold=None
@@ -617,13 +633,27 @@ to help the player manipulate it above the Skyline.
 
 		return 1
 
+	def place_hold(self, tetromino):
+		"Places the tetromino to the hold canvas"
+		self.boss.hold_can.delete(ALL)
+		curr=tetromino.generate()
+		bs=self.blocksize*0.85
+		dx=-50
+		if curr['type']==O:
+			dx=-60
+		elif curr['type']==I:
+			dx=-40
+		[self.boss.hold_can.create_rectangle(dx+(bs*x),90-(y-19)*bs,dx+bs+(bs*x), 90-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']]
+
+
 	def falling_phase(self):
 		"During falling, the player can rotate, move sideways, soft drop, hard drop or hold the Tetromino"
 
 		while self.phase=="falling":
 			if self.abandon:raise AbandonException()
 			if self.boss.paused: continue
-
+			if self.hold:
+				self.generation_phase(True)
 			#Hard Drop?
 			if self.hard_drop_flag:
 				self.hard_drop()
@@ -845,7 +875,7 @@ class GameOverException(Exception):
 
 if __name__ == '__main__':
 	
-	help(__name__)
+	#help(__name__)
 
 	root=Tk()
 	fr=GameDashboard(root)
@@ -855,8 +885,5 @@ if __name__ == '__main__':
 
 
 #TODO
-#SRS
-#NOTE: T-Tetromino may have some unused rotation points depening on the direction it's facing.
-#	   These are unused, because another rotation logically must have succeeded if the 'unused' was a possible rotation.
-#	   The code does not skip these... 
+#Hold
 
