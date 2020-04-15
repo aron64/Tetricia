@@ -50,27 +50,65 @@ class L:
 	"""L - Tetromino behaviour description"""
 	def generate():
 		return {'type': L, 'coords': [(x,20) for x in range(4,7)]+[(6,21)], 'rot': 'N', 'color':'#ffa500'}
+	Defaults={'W':[(4,3),(4,4),(4,5),(3,5)],
+			  'N':[(3,4),(4,4),(5,4),(5,5)],
+			  'E':[(4,5),(4,4),(4,3),(5,3)],
+			  'S':[(5,4),(4,4),(3,4),(3,3)]}
+	Points={'W':[(4,4),(3,4),(3,3),(4,6),(3,6)],
+			'N':[(4,4),(4,4),(4,4),(4,4),(4,4)],
+			'E':[(4,4),(5,4),(5,3),(4,6),(5,6)],
+			'S':[(4,4),(4,4),(4,4),(4,4),(4,4)]}
 
 class J:
 	"""J - Tetromino behaviour description"""
 	def generate():
 		return {'type': J, 'coords': [(x,20) for x in range(4,7)]+[(4,21)], 'rot': 'N', 'color':'#0000ff'}
+	Defaults={'W':[(4,3),(4,4),(4,5),(3,3)],
+			  'N':[(3,4),(4,4),(5,4),(3,5)],
+			  'E':[(4,5),(4,4),(4,3),(5,5)],
+			  'S':[(5,4),(4,4),(3,4),(5,3)]}
+	Points={'W':[(4,4),(3,4),(3,3),(4,6),(3,6)],
+			'N':[(4,4),(4,4),(4,4),(4,4),(4,4)],
+			'E':[(4,4),(5,4),(5,3),(4,6),(5,6)],
+			'S':[(4,4),(4,4),(4,4),(4,4),(4,4)]}
 
 class S:
 	"""S - Tetromino behaviour description"""
 	def generate():
 		return {'type': S, 'coords': [(4,20),(5,20), (5,21),(6,21)], 'rot': 'N', 'color':'#00ff00'}
-
+	Defaults={'W':[(4,3),(4,4),(3,4),(3,5)],
+			  'N':[(3,4),(4,4),(4,5),(5,5)],
+			  'E':[(4,5),(4,4),(5,4),(5,3)],
+			  'S':[(5,4),(4,4),(4,3),(3,3)]}
+	Points={'W':[(4,4),(3,4),(3,3),(4,6),(3,6)],
+			'N':[(4,4),(4,4),(4,4),(4,4),(4,4)],
+			'E':[(4,4),(5,4),(5,3),(4,6),(5,6)],
+			'S':[(4,4),(4,4),(4,4),(4,4),(4,4)]}
 class Z:
 	"""Z - Tetromino behaviour description"""
 	def generate():
 		return {'type': Z, 'coords': [(5,20),(6,20), (4,21),(5,21)], 'rot': 'N', 'color':'#ff0000'}
+	Defaults={'W':[(4,4),(4,5),(3,3),(3,4)],
+			  'N':[(4,4),(5,4),(3,5),(4,5)],
+			  'E':[(4,4),(4,3),(5,5),(5,4)],
+			  'S':[(4,4),(3,4),(5,3),(4,3)]}
+	Points={'W':[(4,4),(3,4),(3,3),(4,6),(3,6)],
+			'N':[(4,4),(4,4),(4,4),(4,4),(4,4)],
+			'E':[(4,4),(5,4),(5,3),(4,6),(5,6)],
+			'S':[(4,4),(4,4),(4,4),(4,4),(4,4)]}
 		
 class O:
 	"""O - Tetromino behaviour description"""
 	def generate():
 		return {'type': O, 'coords': [(5,20),(6,20), (5,21),(6,21)], 'rot': 'N', 'color':'#ffff00'}
-		
+	Defaults={'W':[(4,4),(5,4),(4,5),(5,5)],
+			  'N':[(4,4),(5,4),(4,5),(5,5)],
+			  'E':[(4,4),(5,4),(4,5),(5,5)],
+			  'S':[(4,4),(5,4),(4,5),(5,5)]}
+	Points={'W':[(4,4),(4,4),(4,4),(4,4),(4,4)],
+			'N':[(4,4),(4,4),(4,4),(4,4),(4,4)],
+			'E':[(4,4),(4,4),(4,4),(4,4),(4,4)],
+			'S':[(4,4),(4,4),(4,4),(4,4),(4,4)]}
 
 
 
@@ -553,9 +591,9 @@ to help the player manipulate it above the Skyline.
 			#Soft Drop?
 			if self.soft_drop_flag:
 				self.soft_drop()
-			if self.rotate_cw_flag and self.active['type'] in (T,I):
+			if self.rotate_cw_flag:
 				self.rotate()
-			elif self.rotate_ccw_flag and self.active['type'] in (T,I):
+			elif self.rotate_ccw_flag:
 				self.rotate(True)
 
 			if self.pressed:
@@ -621,10 +659,10 @@ to help the player manipulate it above the Skyline.
 			#Soft Drop?
 			#Once the surface is reached, Soft Drop should not auto-repeat, rather just wait out the 0.5 sec to lock down.
 			#rotation?
-			if self.rotate_cw_flag and self.active['type'] in (T,I):
+			if self.rotate_cw_flag:
 				act=self.rotate()
 				if act:self.counter+=1
-			elif self.rotate_ccw_flag and self.active['type'] in (T,I):
+			elif self.rotate_ccw_flag:
 				act=self.rotate(True)
 				if act:self.counter+=1
 			if self.pressed:
@@ -763,4 +801,8 @@ if __name__ == '__main__':
 
 #TODO
 #SRS
+#NOTE: T-Tetromino may have some unused rotation points depening on the direction it's facing.
+#	   These are unused, because another rotation logically must have succeeded if the 'unused' was a possible rotation.
+#	   The code does not skip these... 
+
 #Lowest line reached and lock phase counter
