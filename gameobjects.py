@@ -640,7 +640,7 @@ to help the player manipulate it above the Skyline.
 				self.last_linedrop=now
 				self.linedrop()
 				continue
-				
+
 			#Soft Drop?
 			if self.soft_drop_flag:
 				self.soft_drop()
@@ -679,6 +679,9 @@ to help the player manipulate it above the Skyline.
 		self.active['coords']=new_coords[:]
 		for x,y in new_coords:
 			self.GM[x][y]='A'
+			if y<self.lowest_line_reached:
+				self.lowest_line_reached=y
+				self.counter=0
 
 		#Visual
 		for block in self.active['objects']:
@@ -692,7 +695,7 @@ to help the player manipulate it above the Skyline.
 			if self.abandon:raise AbandonException()
 			if self.boss.paused: continue
 
-			#Atop Surface?
+			#Still Atop Surface?
 			if not self.touching_surface():
 				#return to main cycle
 				return False
@@ -856,4 +859,3 @@ if __name__ == '__main__':
 #	   These are unused, because another rotation logically must have succeeded if the 'unused' was a possible rotation.
 #	   The code does not skip these... 
 
-#Lowest line reached and lock phase counter
