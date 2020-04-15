@@ -141,8 +141,10 @@ init(master, blocksize=30, level=1)
 		self.bg="black"
 
 		#The main canvas and the map of the game
-		self.can = Canvas(self, width=10*blocksize, height=20*blocksize, bg=self.bg)
-		
+		self.can = Canvas(self, width=10*blocksize, height=20*blocksize+6, bg=self.bg)
+		self.can.create_line(0,0,10*blocksize, 0, fill="white")
+		self.can.yview_scroll(22, 'units')
+
 		#The hold canvas
 		self.hold_can = Canvas(self, width=6*blocksize, height=4*blocksize, bg=self.bg)
 
@@ -603,13 +605,15 @@ to help the player manipulate it above the Skyline.
 		self.active['objects']=[]
 		for x,y in self.active['coords']:
 			self.GM[x][y]='A'
-			self.active['objects'].append(self.can.create_rectangle(2+(bs*x),-(y-19)*bs,2+bs+(bs*x), -(y-20)*bs, fill=self.active['color']))
+			self.active['objects'].append(self.can.create_rectangle(2+(bs*x),-(y-19)*bs,2+bs+(bs*x), -(y-20)*bs, fill=self.active['color']))#outline='teal'))
 		print(self.active)
 		distance=self.distance_from_surface()
 		self.ghost=[]
 		for x,y in self.active['coords']:
 			self.ghost.append(self.can.create_rectangle(2+(bs*x),-(y-19-distance)*bs,2+bs+(bs*x), -(y-20-distance)*bs, outline=self.active['color']))
 		#self.ghost={'coords':[self.active['coords'][x][0], self.active['coords'][x][1]-distance_from_surface]}
+
+
 		return 1
 
 	def falling_phase(self):
