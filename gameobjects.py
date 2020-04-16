@@ -141,7 +141,7 @@ init(master, blocksize=30, level=1)
 		self.bg="black"
 
 		#The main canvas and the map of the game
-		self.can = Canvas(self, width=10*blocksize, height=20*blocksize+6, bg=self.bg)
+		self.can = Canvas(self, width=10*blocksize, height=20*blocksize+6+300, bg=self.bg)
 		self.can.create_line(0,0,10*blocksize, 0, fill="white")
 		self.can.yview_scroll(22, 'units')
 
@@ -218,18 +218,21 @@ class GameEngine(threading.Thread):
 		#Game Matrix
 		#A: Active Tetromino
 		#B: Block
-		#E: Marked for elimination
+		#OGM: Object Game Matrix
 		self.GM = [[0]*40 for x in range(10)]
+		self.OGM=[[0]*40 for x in range(10)]
 
 		#Initialize the active Tetromino's namespace
 		self.active=None
 		#The ghost piece
 		self.ghost=None
 
-		self.bonuses=["Single","Double","Triple","Tetris","Mini T-Spin","Mini T-Spin Single","T-Spin","T-Spin Single","T-Spin Double","T-Spin Triple","Back-to-Back Bonus","Soft Drop","Hard Drop"]
+		self.bonuses=["Single","Double","Triple","Tetris","Mini T-Spin","Mini T-Spin Single","T-Spin","T-Spin Single","T-Spin Double","T-Spin Triple","B2B","Soft Drop","Hard Drop"]
 		self.multiplier=[100,300,500,800,100,200,400,800,1200,1600, 0.5, 1,2]
 		self.score={}
 		self.gameScore=0
+		self.line_clears=0
+		self.B2B=False
 		
 		# When any single button is then released, the Tetrimino should again move in the direction still held,
 		# with the Auto-Repeat delay of roughly 0.3 seconds applied once more.
@@ -257,6 +260,10 @@ class GameEngine(threading.Thread):
 
 		if self.pressed==key:
 			return True
+		elif key==Key.up and self.up_released==False:
+			return True
+		elif key==Key.ctrl_l and self.ctrl_l_released==False:
+			return True
 		else:
 			#Don't want to gain the lock unnecessarily
 			if key not in (Key.left, Key.right, Key.up, Key.ctrl_l):return True
@@ -273,13 +280,11 @@ class GameEngine(threading.Thread):
 				self.held[key]=True
 				self.to_repeat=self.move_right
 			elif key==Key.up:
-				if self.up_released:
-					self.up_released=False
-					self.call_rotate_cw()
+				self.up_released=False
+				self.call_rotate_cw()
 			elif key==Key.ctrl_l:
-				if self.ctrl_l_released:
-					self.ctrl_l_released=False
-					self.call_rotate_ccw()
+				self.ctrl_l_released=False
+				self.call_rotate_ccw()
 			self.boss.gameLock.release()
 
 
@@ -335,6 +340,8 @@ class GameEngine(threading.Thread):
 							raise "This should've never occur!"
 					self.phase="pattern"
 					print("Locked!")
+					self.pattern_phase()
+					self.eliminate_phase()
 				else:
 					print("OVER")
 					break
@@ -365,6 +372,7 @@ class GameEngine(threading.Thread):
 			return
 		else:
 			if not self.touching_surface():
+				self.score['Soft Drop']=self.score.get('Soft Drop', 0)+1
 				self.last_linedrop=now
 				self.linedrop()
 
@@ -379,7 +387,8 @@ class GameEngine(threading.Thread):
 		"Method which excecutes a Hard Drop"
 		#How much is it possible to drop?
 		distance=self.distance_from_surface()
-
+		if distance>0:
+			self.spin_last=False
 		[self.linedrop() for x in range(distance)]
 		self.score['Hard Drop']=distance
 		self.lock_down()
@@ -493,6 +502,7 @@ class GameEngine(threading.Thread):
 			if self.GM[x+1][y]=='B':return False
 
 		self.last_action=time.time()
+		self.spin_last=False
 		#Backend
 		#Writing into both the self.active and the main matrix
 		new_coords=[]
@@ -517,7 +527,7 @@ class GameEngine(threading.Thread):
 			if self.GM[x-1][y]=='B':return False
 
 		self.last_action=time.time()
-		
+		self.spin_last=False
 		#Backend
 		#Writing into both the self.active and the main matrix
 		new_coords=[]
@@ -575,7 +585,8 @@ to help the player manipulate it above the Skyline.
 		#Rotate?
 		self.rotate_cw_flag=False
 		self.rotate_ccw_flag=False
-
+		#Lines to eliminate
+		self.eliminate=[]
 
 		#Action counter in locking phasee
 		self.counter=0
@@ -585,6 +596,9 @@ to help the player manipulate it above the Skyline.
 
 		#Timing of the last action (move/rotate, NOT drop)
 		self.last_action=time.time()
+
+		#Did it lock down after a spin?
+		self.spin_last=False
 
 		if self.ghost:
 			for i in self.ghost:
@@ -648,7 +662,7 @@ to help the player manipulate it above the Skyline.
 
 	def falling_phase(self):
 		"During falling, the player can rotate, move sideways, soft drop, hard drop or hold the Tetromino"
-
+		
 		while self.phase=="falling":
 			if self.abandon:raise AbandonException()
 			if self.boss.paused: continue
@@ -673,9 +687,11 @@ to help the player manipulate it above the Skyline.
 			if self.soft_drop_flag:
 				self.soft_drop()
 			if self.rotate_cw_flag:
-				self.rotate()
+				act=self.rotate()
+				if act:self.spin_last=True
 			elif self.rotate_ccw_flag:
-				self.rotate(True)
+				act=self.rotate(True)
+				if act:self.spin_last=True
 
 			self.boss.gameLock.acquire()
 			if self.pressed:
@@ -700,6 +716,7 @@ to help the player manipulate it above the Skyline.
 		"Let the tetromino fall down one line. WARNING: This function does not check circumstances."
 		#Backend
 		#Writing into both the self.active and the main matrix
+		self.spin_last=False
 		new_coords=[]
 		for x,y in self.active['coords']:
 			new_coords.append((x,y-1))
@@ -728,6 +745,7 @@ to help the player manipulate it above the Skyline.
 			#Still Atop Surface?
 			if not self.touching_surface():
 				#return to main cycle
+				self.spin_last=False
 				return False
 
 			if self.counter==15:
@@ -745,11 +763,15 @@ to help the player manipulate it above the Skyline.
 			#rotation?
 			if self.rotate_cw_flag:
 				act=self.rotate()
-				if act:self.counter+=1
+				if act:
+					self.counter+=1
+					self.spin_last=True
 			elif self.rotate_ccw_flag:
 				act=self.rotate(True)
-				if act:self.counter+=1
-			if self.pressed:
+				if act:
+					self.counter+=1
+					self.spin_last=True
+			elif self.pressed:
 				do=False
 				now=time.time()
 				if self.timer_repeat==0:
@@ -764,7 +786,9 @@ to help the player manipulate it above the Skyline.
 					do=True
 				if do:
 					act=self.to_repeat()
-					if act:self.counter+=1
+					if act:
+						self.counter+=1
+						self.spin_last=False
 
 			if time.time()-self.last_action>=0.5:
 				self.lock_down()
@@ -775,6 +799,7 @@ to help the player manipulate it above the Skyline.
 		"Sets the Tetromino to the permanent state, deletes the ghost piece"
 		for x,y in self.active['coords']:
 			self.GM[x][y]='B'
+			self.OGM[x][y]=self.active['objects'][self.active['coords'].index((x,y))]
 		for x in self.ghost:
 			self.can.delete(x)
 
@@ -787,8 +812,86 @@ The matching Blocks are then marked for removal on a hit list.
 Blocks on the hit list are cleared from the Matrix at a later time in the Eliminate Phase.
 This phase takes up no apparent game time.
 """
-		pass
+		#Check for Lock Out
+		lockout=True
+		for x,y in self.active['coords']:
+			if y<=20:
+				lockout=False
+				break
 
+		if lockout:
+			self.game_over()
+
+		tspin=False
+		mini_tspin=False
+		#recognize T-Spins
+		if self.active['type']==T and self.spin_last:
+
+			center=self.active['coords'][1]
+			leg=self.active['coords'][3]
+			diff=(leg[0]-center[0], leg[1]-center[1])
+			aleg=(center[0]-diff[0], center[1]-diff[1])
+			ab=[(leg[0]-diff[1], leg[1]-diff[0]), (leg[0]+diff[1],leg[1]+diff[0])]
+			cd=[(aleg[0]-diff[1], aleg[1]-diff[0]), (aleg[0]+diff[1],aleg[1]+diff[0])]
+			bs=self.blocksize
+
+			
+			ab_count=self.surfaces(ab)
+			cd_count=self.surfaces(cd)
+			
+			if ab_count==2 and cd_count>=1:
+				tspin=True
+			if cd_count==2 and ab_count==1:
+				mini_tspin=True
+
+		self.bonuses=["Single","Double","Triple","Tetris","Mini T-Spin","Mini T-Spin Single","T-Spin","T-Spin Single","T-Spin Double","T-Spin Triple","B2B","Soft Drop","Hard Drop"]
+		lines=0
+		clear=['B']*10
+		for y in range(40):
+			line=[self.GM[x][y] for x in range(10)]
+			if line==clear:
+				lines+=1
+				self.eliminate.append(y)
+		
+		bonus=""
+		if mini_tspin:
+			bonus+="Mini T-Spin"
+		elif tspin:
+			bonus+="T-Spin"
+		if lines>0 and len(bonus)>0:
+			bonus+=" "
+		if lines>0:
+			bonus+=self.bonuses[lines-1]
+		if len(bonus)>0:
+			self.score[bonus]=1
+
+		if bonus in ("Tetris", "T-Spin Single",  "T-Spin Double", "T-Spin Triple", "Mini T-Spin Single"):
+			if self.B2B:
+				self.score["B2B"]=1
+			else:
+				self.B2B=True
+		elif bonus not in ("Mini T-Spin", "T-Spin"):
+			self.B2B=False
+
+		print("Bonus:"+bonus)
+		
+
+		print(self.score)
+
+		
+		
+
+
+
+	def surfaces(self, list_):
+		"Determines how many coordinates is Surface"
+		counter=0
+		for x,y in list_:
+			if y==-1 or x==-1 or x==10:
+				counter+=1
+			elif self.GM[x][y]=='B':
+				counter+=1
+		return counter
 	def eliminate_phase(self):
 		"""
 Involves animation.
@@ -798,7 +901,21 @@ If this results in one or more complete 10-cell rows in the Matrix becoming unoc
 then all Minos above that row(s) collapse, or fall by the number of complete rows cleared from the Matrix.
 Points are awarded to the player according to the Tetris Scoring System, as seen in the Scoring section.
 """
-		pass
+		for i in range(len(self.eliminate)):
+			y=self.eliminate[i]
+			print(y)
+			for x in range(10):
+				del self.GM[x][y]
+				self.GM[x].append(0)
+				self.can.delete(self.OGM[x][y])
+				self.OGM[x][y]=0
+				for y1 in range(y+1,40):
+					if self.OGM[x][y1]:
+						self.OGM[x][y1-1]=self.OGM[x][y1]
+						self.can.move(self.OGM[x][y1], 0, self.blocksize)
+						self.OGM[x][y1]=0
+			for j in range(len(self.eliminate)):
+				self.eliminate[j]-=1
 
 	def block_out(self, coords):
 		"Game Over Condition - Is it possible to place the new Tetromino?"
