@@ -878,10 +878,6 @@ This phase takes up no apparent game time.
 
 		print(self.score)
 
-		
-		
-
-
 
 	def surfaces(self, list_):
 		"Determines how many coordinates is Surface"
@@ -901,12 +897,41 @@ If this results in one or more complete 10-cell rows in the Matrix becoming unoc
 then all Minos above that row(s) collapse, or fall by the number of complete rows cleared from the Matrix.
 Points are awarded to the player according to the Tetris Scoring System, as seen in the Scoring section.
 """
-		for i in range(len(self.eliminate)):
-			y=self.eliminate[i]
+		self.clear_marked_lines()
+
+
+	def clear_marked_lines(self):
+		"Clears any line marked by having it's id in the sorted list self.eliminate"
+		if self.eliminate==[]:
+			return
+		elim=self.eliminate.copy()
+		for i in range(len(elim)):
+			y=elim[i]
 			print(y)
 			for x in range(10):
 				del self.GM[x][y]
 				self.GM[x].append(0)
+			for j in range(len(elim)):
+				elim[j]-=1
+		#threading.Thread(target=self.clear_line_animation).start()
+		#time.sleep(0.0001)
+		self.clear_line_animation()
+
+	def clear_line_animation(self):
+		"Method, removes the marked blocks visually. Note: This should take up no gametime, but the fact it does, only awards multiple line clears by a brief pause, which can be helpful at high levels."
+		elim=self.eliminate.copy()
+		rgb_fact=0
+		print("HERE")
+		while rgb_fact<255:
+			for x in range(10):
+				for y in elim:
+					self.can.itemconfig(self.OGM[x][y], fill ="#%02x%02x%02x" % (rgb_fact,rgb_fact,rgb_fact))
+			rgb_fact+=16
+			time.sleep(0.005)
+
+		for i in range(len(elim)):
+			y=elim[i]
+			for x in range(10):
 				self.can.delete(self.OGM[x][y])
 				self.OGM[x][y]=0
 				for y1 in range(y+1,40):
@@ -914,8 +939,9 @@ Points are awarded to the player according to the Tetris Scoring System, as seen
 						self.OGM[x][y1-1]=self.OGM[x][y1]
 						self.can.move(self.OGM[x][y1], 0, self.blocksize)
 						self.OGM[x][y1]=0
-			for j in range(len(self.eliminate)):
-				self.eliminate[j]-=1
+				time.sleep(0.01)
+			for j in range(len(elim)):
+				elim[j]-=1
 
 	def block_out(self, coords):
 		"Game Over Condition - Is it possible to place the new Tetromino?"
@@ -1004,5 +1030,5 @@ if __name__ == '__main__':
 
 
 #TODO
-#Hold
-
+#Scoring
+#Levels
