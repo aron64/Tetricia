@@ -123,7 +123,7 @@ init(master, blocksize=30, level=1)
     level is the initial game difficulcity (speed and scoring multiplier)
 
 """
-	def __init__(self, master, blocksize=30, level=10):
+	def __init__(self, master, blocksize=30, level=1):
 		Frame.__init__(self)
 		self.blocksize = blocksize
 		self.level=level
@@ -176,7 +176,6 @@ init(master, blocksize=30, level=1)
 		#Bindings
 		#self.bind("<Destroy>", self._destroy)
 		self.master.protocol("WM_DELETE_WINDOW", self._destroy)
-		self.master.bind("<Down>", self.arrow_down)
 		self.master.bind("<space>", self.button_space)
 		self.master.bind("c", self.button_c)
 
@@ -200,11 +199,6 @@ init(master, blocksize=30, level=1)
 			self.gameThread=GameEngine(self, self.can, self.blocksize, self.level,self.bag)
 			self.gameThread.start()
 
-	def arrow_down(self, event):
-		"keyboard.arrow_down Event handler"
-		if self.ingame and not self.paused:
-			self.gameThread.call_soft_drop()
-
 	def button_space(self, event):
 		"keyboard.space Event handler"
 		if self.ingame and not self.paused:
@@ -224,16 +218,14 @@ init(master, blocksize=30, level=1)
 
 class GameEngine(threading.Thread):
 	"""docstring for GameEngine"""
-	def __init__(self, boss, can, blocksize, level,bag, left=Key.left, right=Key.right):
+	def __init__(self, boss, can, blocksize, level,bag):
 		threading.Thread.__init__(self)
 		self.boss = boss
 		self.can = can
 		self.blocksize = blocksize
 		self.bag=bag
 
-		#Button bindings
-		self.left=left
-		self.right=right
+		self.soft_drop_flag=False
 
 		#Game Phase tracker
 		self.phase="Inactive"
@@ -326,7 +318,7 @@ class GameEngine(threading.Thread):
 			return True
 		else:
 			#Don't want to gain the lock unnecessarily
-			if key not in (Key.left, Key.right, Key.up, Key.ctrl_l):return True
+			if key not in (Key.left, Key.right, Key.up, Key.ctrl_l, Key.down):return True
 
 			self.boss.gameLock.acquire()
 			if key==Key.left:
@@ -345,6 +337,9 @@ class GameEngine(threading.Thread):
 			elif key==Key.ctrl_l:
 				self.ctrl_l_released=False
 				self.call_rotate_ccw()
+			elif key==Key.down:
+				if not self.call_soft_drop():
+					self.call_soft_drop()
 			self.boss.gameLock.release()
 
 
@@ -369,6 +364,8 @@ class GameEngine(threading.Thread):
 			self.up_released=True
 		elif key==Key.ctrl_l:
 			self.ctrl_l_released=True
+		elif key==Key.down:
+			self.call_soft_drop(False)
 
 	def reset_auto_repeat_cooldowns(self):
 		self.last_repeat=0
@@ -421,15 +418,16 @@ class GameEngine(threading.Thread):
 			return
 		if self.hold==None:
 			self.hold=True
-	def call_soft_drop(self):
+	def call_soft_drop(self, logical=True):
 		"Set flag for a Soft Drop"
 		if self.phase not in ("falling", "locking"):
 			return
-		self.soft_drop_flag=True
+		self.soft_drop_flag=logical
+		return self.soft_drop_flag
 
 	def soft_drop(self):
 		"Method which excecutes a soft drop whenever off cooldown."
-		self.soft_drop_flag=False
+		#self.soft_drop_flag=False
 		now=time.time()
 		if now-self.last_linedrop<(self.speed/20):
 			return
@@ -644,7 +642,6 @@ to help the player manipulate it above the Skyline.
 		#Did a hard drop occur?
 		self.hard_drop_flag=False
 		#Soft drop?
-		self.soft_drop_flag=False
 		#Rotate?
 		self.rotate_cw_flag=False
 		self.rotate_ccw_flag=False
@@ -907,6 +904,7 @@ This phase takes up no apparent game time.
 			if cd_count==2 and ab_count==1:
 				mini_tspin=True
 
+		#Find and mark lines for elimination
 		lines=0
 		clear=['B']*10
 		for y in range(40):
@@ -915,6 +913,8 @@ This phase takes up no apparent game time.
 				lines+=1
 				self.eliminate.append(y)
 		
+
+		#Bonuses are name of lineclears, tspins, or both with tspin name in front
 		bonus=""
 		if mini_tspin:
 			bonus+="Mini T-Spin"
@@ -926,13 +926,14 @@ This phase takes up no apparent game time.
 			bonus+=self.bonuses[lines-1]
 
 			#Increase the level if another 10 lines has been cleared
-			before=self.lineScore//10
-			self.lineScore+=lines
-			after=self.lineScore//10
-			if after>before:self.levelScore+=1
+			if self.levelScore<15:
+				before=self.lineScore//10
+				self.lineScore+=lines
+				after=self.lineScore//10
+				if after>before:self.levelScore+=1
 		
 
-
+		#Back-To-Back recognition
 		apply_b2b=False
 		if bonus in ("Tetris", "T-Spin Single",  "T-Spin Double", "T-Spin Triple", "Mini T-Spin Single"):
 			if self.B2B:
@@ -965,12 +966,12 @@ This phase takes up no apparent game time.
 		return counter
 	def eliminate_phase(self):
 		"""
-Involves animation.
+Involves animation. Note that I did the scoring in the pattern phase.
 
 Any Minos marked for removal, i.e., on the hit list, are cleared from the Matrix in this phase.
 If this results in one or more complete 10-cell rows in the Matrix becoming unoccupied by Minos,
 then all Minos above that row(s) collapse, or fall by the number of complete rows cleared from the Matrix.
-Points are awarded to the player according to the Tetris Scoring System, as seen in the Scoring section.
+Points are awarded to the player according to the Tetris Scoring System,[...].
 """
 		self.clear_marked_lines()
 
