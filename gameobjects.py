@@ -17,6 +17,7 @@ https://tetris.fandom.com/wiki/Tetris_Guideline
 
 
 from tkinter import *
+import tkinter.ttk as ttk
 from random import randrange,shuffle
 import threading,time
 from pynput.keyboard import Key, Listener
@@ -122,7 +123,7 @@ init(master, blocksize=30, level=1)
     level is the initial game difficulcity (speed and scoring multiplier)
 
 """
-	def __init__(self, master, blocksize=30, level=1):
+	def __init__(self, master, blocksize=30, level=10):
 		Frame.__init__(self)
 		self.blocksize = blocksize
 		self.level=level
@@ -141,7 +142,7 @@ init(master, blocksize=30, level=1)
 		self.bg="black"
 
 		#The main canvas and the map of the game
-		self.can = Canvas(self, width=10*blocksize, height=20*blocksize+6+300, bg=self.bg)
+		self.can = Canvas(self, width=10*blocksize, height=20*blocksize+5, bg=self.bg)
 		self.can.create_line(0,0,10*blocksize, 0, fill="white")
 		self.can.yview_scroll(22, 'units')
 
@@ -154,10 +155,23 @@ init(master, blocksize=30, level=1)
 		self.bag=Bag(self.queue_can, blocksize)
 
 		#Widget placements
-		self.hold_can.grid(row=0, column=0, padx=5, pady=5, sticky=N)
-		self.can.grid(row=0, column=1, pady=5, rowspan=5)
-		self.queue_can.grid(row=0, column=2, columnspan=5, padx=5, pady=5, sticky = N)
+		self.hold_can.grid(row=0, column=0,columnspan=2, padx=5, pady=5, sticky=N)
+		self.can.grid(row=0, column=2, pady=5, rowspan=5)
+		self.queue_can.grid(row=0, column=3, rowspan=5, padx=5, pady=5, sticky = N)
 
+		#Labels:
+		self.label_frame=Frame(self)
+		self.label_frame.grid(row=4, column=0)
+		Label(self.label_frame,text="Points: ").grid(row=1, column=0, sticky="SW")
+		Label(self.label_frame,text="Level: ").grid(row=2, column=0, sticky="SW")
+		Label(self.label_frame,text="Lines cleared: ").grid(row=3, column=0, sticky="SW")
+		self.l_points=Label(self.label_frame,text="0")
+		self.l_levels=Label(self.label_frame,text="0")
+		self.l_lines=Label(self.label_frame,text="0")
+
+		self.l_points.grid(row=1, column=1, sticky="SW")
+		self.l_levels.grid(row=2, column=1, sticky="SW")
+		self.l_lines.grid(row=3, column=1, sticky="SW")
 
 		#Bindings
 		#self.bind("<Destroy>", self._destroy)
@@ -167,31 +181,46 @@ init(master, blocksize=30, level=1)
 		self.master.bind("c", self.button_c)
 
 		#Button for test
-		self.startButton = Button(self, text="PLAY", command=self.start_new_game)
-		self.startButton.grid(row=0)
+		self.startButton = ttk.Button(self, text="PLAY", command=self.start_new_game)
+		self.startButton.grid(row=0, column=0, sticky="S")
 
 	def _destroy(self):
+		"Window closed event handler"
 		if self.ingame:
 			self.gameThread.call_quit()
 		self.master.after(200,self.master.destroy)
 
 	def start_new_game(self):
+		"Start a solo game"
+		self.can.focus_set()
 		if not self.ingame:
+			self.set_levels(self.level)
 			self.ingame=True
 			self.bag.start()
 			self.gameThread=GameEngine(self, self.can, self.blocksize, self.level,self.bag)
 			self.gameThread.start()
 
 	def arrow_down(self, event):
+		"keyboard.arrow_down Event handler"
 		if self.ingame and not self.paused:
 			self.gameThread.call_soft_drop()
 
 	def button_space(self, event):
+		"keyboard.space Event handler"
 		if self.ingame and not self.paused:
 			self.gameThread.call_hard_drop()
 	def button_c(self, event):
+		"keyboard.c Event handler"
 		if self.ingame and not self.paused:
 			self.gameThread.call_hold()
+
+	def set_points(self,points):
+		self.l_points.config(text="%d"%points)
+
+	def set_levels(self,level):
+		self.l_levels.config(text="%d"%level)
+	def set_lines(self,lines):
+		self.l_lines.config(text="%d"%lines)
 
 class GameEngine(threading.Thread):
 	"""docstring for GameEngine"""
@@ -200,7 +229,6 @@ class GameEngine(threading.Thread):
 		self.boss = boss
 		self.can = can
 		self.blocksize = blocksize
-		self.level = level
 		self.bag=bag
 
 		#Button bindings
@@ -227,16 +255,18 @@ class GameEngine(threading.Thread):
 		#The ghost piece
 		self.ghost=None
 
-		self.bonuses=["Single","Double","Triple","Tetris","Mini T-Spin","Mini T-Spin Single","T-Spin","T-Spin Single","T-Spin Double","T-Spin Triple","B2B","Soft Drop","Hard Drop"]
-		self.multiplier=[100,300,500,800,100,200,400,800,1200,1600, 0.5, 1,2]
+		self.bonuses=["Single","Double","Triple","Tetris","Mini T-Spin","Mini T-Spin Single","T-Spin","T-Spin Single","T-Spin Double","T-Spin Triple"]
+		self.multiplier=[100,300,500,800,100,200,400,800,1200,1600]
 		self.score={}
-		self.gameScore=0
-		self.line_clears=0
+		self._gameScore=0
+		self._lineScore=0
+		self._levelScore=level
+
 		self.B2B=False
 		
 		# When any single button is then released, the Tetrimino should again move in the direction still held,
 		# with the Auto-Repeat delay of roughly 0.3 seconds applied once more.
-		self.auto_repeat_delay=0.3
+		self.auto_repeat_delay=0.21
 		self.auto_repeat_speed=0.03
 
 		# The method to repeat
@@ -256,8 +286,38 @@ class GameEngine(threading.Thread):
 		self.kb_listen=Listener(on_press=self.on_press, on_release=self.on_release)
 		self.kb_listen.start()
 
-	def on_press(self, key):
+	@property
+	def gameScore(self):
+		"""I'm the 'gameScore' property."""
+		return self._gameScore
 
+	@gameScore.setter
+	def gameScore(self, value):
+		self._gameScore = value
+		self.boss.set_points(self._gameScore)
+	
+	@property
+	def lineScore(self):
+		"""I'm the 'lineScore' property."""
+		return self._lineScore
+
+	@lineScore.setter
+	def lineScore(self, value):
+		self._lineScore = value
+		self.boss.set_lines(self._lineScore)
+	
+	@property
+	def levelScore(self):
+		"""I'm the 'levelScore' property."""
+		return self._levelScore
+
+	@levelScore.setter
+	def levelScore(self, value):
+		self._levelScore = value
+		self.boss.set_levels(self._levelScore)
+
+	def on_press(self, key):
+		"pynput event handler"
 		if self.pressed==key:
 			return True
 		elif key==Key.up and self.up_released==False:
@@ -291,6 +351,7 @@ class GameEngine(threading.Thread):
 
 
 	def on_release(self,key):
+		"pynput event handler"
 		if self.pressed==key:
 			self.boss.gameLock.acquire()
 			self.pressed=False
@@ -315,9 +376,11 @@ class GameEngine(threading.Thread):
 
 
 	def call_quit(self):
+		"Call this to shut down the Engine Thread"
 		self.abandon=True
 
 	def run(self):
+		"Run, run, run, run-runrunrunruuuuuuun!"
 		try:
 			while True:
 				self.boss.ingame=True
@@ -372,7 +435,7 @@ class GameEngine(threading.Thread):
 			return
 		else:
 			if not self.touching_surface():
-				self.score['Soft Drop']=self.score.get('Soft Drop', 0)+1
+				self.gameScore+=1
 				self.last_linedrop=now
 				self.linedrop()
 
@@ -390,7 +453,7 @@ class GameEngine(threading.Thread):
 		if distance>0:
 			self.spin_last=False
 		[self.linedrop() for x in range(distance)]
-		self.score['Hard Drop']=distance
+		self.gameScore+=distance*2
 		self.lock_down()
 		self.hard_drop_flag=False
 
@@ -571,7 +634,7 @@ to help the player manipulate it above the Skyline.
 		bs=self.blocksize
 
 		#Game speed
-		self.speed=(0.8 - ((self.level - 1) * 0.007))**(self.level - 1)
+		self.speed=(0.8 - ((self.levelScore - 1) * 0.007))**(self.levelScore - 1)
 		#Score in each turn will be logged in a dictionary
 		self.score={}
 		#Lowest line tracker
@@ -633,7 +696,7 @@ to help the player manipulate it above the Skyline.
 		self.active['objects']=[]
 		for x,y in self.active['coords']:
 			self.GM[x][y]='A'
-			self.active['objects'].append(self.can.create_rectangle(2+(bs*x),-(y-19)*bs,2+bs+(bs*x), -(y-20)*bs, fill=self.active['color']))#outline='teal'))
+			self.active['objects'].append(self.can.create_rectangle(2+(bs*x),-(y-19)*bs,2+bs+(bs*x), -(y-20)*bs, fill=self.active['color']))
 		print(self.active)
 		distance=self.distance_from_surface()
 		self.ghost=[]
@@ -844,7 +907,6 @@ This phase takes up no apparent game time.
 			if cd_count==2 and ab_count==1:
 				mini_tspin=True
 
-		self.bonuses=["Single","Double","Triple","Tetris","Mini T-Spin","Mini T-Spin Single","T-Spin","T-Spin Single","T-Spin Double","T-Spin Triple","B2B","Soft Drop","Hard Drop"]
 		lines=0
 		clear=['B']*10
 		for y in range(40):
@@ -862,21 +924,34 @@ This phase takes up no apparent game time.
 			bonus+=" "
 		if lines>0:
 			bonus+=self.bonuses[lines-1]
-		if len(bonus)>0:
-			self.score[bonus]=1
 
+			#Increase the level if another 10 lines has been cleared
+			before=self.lineScore//10
+			self.lineScore+=lines
+			after=self.lineScore//10
+			if after>before:self.levelScore+=1
+		
+
+
+		apply_b2b=False
 		if bonus in ("Tetris", "T-Spin Single",  "T-Spin Double", "T-Spin Triple", "Mini T-Spin Single"):
 			if self.B2B:
-				self.score["B2B"]=1
+				apply_b2b=True
 			else:
 				self.B2B=True
 		elif bonus not in ("Mini T-Spin", "T-Spin"):
 			self.B2B=False
 
 		print("Bonus:"+bonus)
-		
+		points=0
+		if len(bonus)>0:
+			points=self.multiplier[self.bonuses.index(bonus)]
+			print("+%d" %points)
+		if apply_b2b:
+			print("Back-To-Back +%d" %points*0.5)
+			points*=1.5
 
-		print(self.score)
+		self.gameScore+=points
 
 
 	def surfaces(self, list_):
@@ -907,7 +982,6 @@ Points are awarded to the player according to the Tetris Scoring System, as seen
 		elim=self.eliminate.copy()
 		for i in range(len(elim)):
 			y=elim[i]
-			print(y)
 			for x in range(10):
 				del self.GM[x][y]
 				self.GM[x].append(0)
@@ -921,7 +995,6 @@ Points are awarded to the player according to the Tetris Scoring System, as seen
 		"Method, removes the marked blocks visually. Note: This should take up no gametime, but the fact it does, only awards multiple line clears by a brief pause, which can be helpful at high levels."
 		elim=self.eliminate.copy()
 		rgb_fact=0
-		print("HERE")
 		while rgb_fact<255:
 			for x in range(10):
 				for y in elim:
@@ -1030,5 +1103,5 @@ if __name__ == '__main__':
 
 
 #TODO
-#Scoring
+#Soft drop smoothing
 #Levels
