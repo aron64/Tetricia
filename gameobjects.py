@@ -21,7 +21,7 @@ import tkinter.ttk as ttk
 from random import randrange,shuffle
 import threading,time
 from pynput.keyboard import Key, Listener
-
+from chat_gui import *
 class I:
 	"""I - Tetromino behaviour description"""
 	def generate():
@@ -123,7 +123,7 @@ init(master, blocksize=30, level=1)
     level is the initial game difficulcity (speed and scoring multiplier)
 
 """
-	def __init__(self, master, blocksize=30, level=1):
+	def __init__(self, master, blocksize=30, level=1, ):
 		Frame.__init__(self)
 		self.blocksize = blocksize
 		self.level=level
@@ -150,7 +150,7 @@ init(master, blocksize=30, level=1)
 		self.hold_can = Canvas(self, width=6*blocksize, height=4*blocksize, bg=self.bg)
 
 		#Canvas of the next pieces
-		self.queue_can = Canvas(self, width=6*blocksize, height=20*blocksize, bg=self.bg)
+		self.queue_can = Canvas(self, width=6*blocksize, height=20*blocksize+5, bg=self.bg)
 		self.queue_can.create_rectangle(0,0,7*blocksize,100, fill="cyan")
 		self.bag=Bag(self.queue_can, blocksize)
 
@@ -159,15 +159,17 @@ init(master, blocksize=30, level=1)
 		self.can.grid(row=0, column=2, pady=5, rowspan=5)
 		self.queue_can.grid(row=0, column=3, rowspan=5, padx=5, pady=5, sticky = N)
 
+		#Font
+		self.font=font.Font(family='Comic Sans MS', size=12, weight='bold', slant='roman')
 		#Labels:
 		self.label_frame=Frame(self)
 		self.label_frame.grid(row=4, column=0)
-		Label(self.label_frame,text="Points: ").grid(row=1, column=0, sticky="SW")
-		Label(self.label_frame,text="Level: ").grid(row=2, column=0, sticky="SW")
-		Label(self.label_frame,text="Lines cleared: ").grid(row=3, column=0, sticky="SW")
-		self.l_points=Label(self.label_frame,text="0")
-		self.l_levels=Label(self.label_frame,text="0")
-		self.l_lines=Label(self.label_frame,text="0")
+		Label(self.label_frame,text="Points: ",font=self.font).grid(row=1, column=0, sticky="SW")
+		Label(self.label_frame,text="Level: ",font=self.font).grid(row=2, column=0, sticky="SW")
+		Label(self.label_frame,text="Lines cleared: ",font=self.font).grid(row=3, column=0, sticky="SW")
+		self.l_points=Label(self.label_frame,text="0",font=self.font)
+		self.l_levels=Label(self.label_frame,text="0",font=self.font)
+		self.l_lines=Label(self.label_frame,text="0",font=self.font)
 
 		self.l_points.grid(row=1, column=1, sticky="SW")
 		self.l_levels.grid(row=2, column=1, sticky="SW")
@@ -180,8 +182,8 @@ init(master, blocksize=30, level=1)
 		self.master.bind("c", self.button_c)
 
 		#Button for test
-		self.startButton = ttk.Button(self, text="PLAY", command=self.start_new_game)
-		self.startButton.grid(row=0, column=0, sticky="S")
+		self.startButton = ttk.Button(self, text="\nPLAY\n", command=self.start_new_game, width=28)
+		self.startButton.grid(row=0, column=0,padx=8, sticky="S")
 
 	def _destroy(self):
 		"Window closed event handler"
@@ -194,6 +196,9 @@ init(master, blocksize=30, level=1)
 		self.can.focus_set()
 		if not self.ingame:
 			self.set_levels(self.level)
+			self.can.delete(ALL)
+			self.queue_can.delete(ALL)
+			self.hold_can.delete(ALL)
 			self.ingame=True
 			self.bag.start()
 			self.gameThread=GameEngine(self, self.can, self.blocksize, self.level,self.bag)
@@ -253,6 +258,9 @@ class GameEngine(threading.Thread):
 		self._gameScore=0
 		self._lineScore=0
 		self._levelScore=level
+		self.gameScore=0
+		self.levelScore=level
+		self.lineScore=0
 
 		self.B2B=False
 		
@@ -341,9 +349,6 @@ class GameEngine(threading.Thread):
 				if not self.call_soft_drop():
 					self.call_soft_drop()
 			self.boss.gameLock.release()
-
-
-
 
 	def on_release(self,key):
 		"pynput event handler"
@@ -964,6 +969,7 @@ This phase takes up no apparent game time.
 			elif self.GM[x][y]=='B':
 				counter+=1
 		return counter
+
 	def eliminate_phase(self):
 		"""
 Involves animation. Note that I did the scoring in the pattern phase.
@@ -974,7 +980,6 @@ then all Minos above that row(s) collapse, or fall by the number of complete row
 Points are awarded to the player according to the Tetris Scoring System,[...].
 """
 		self.clear_marked_lines()
-
 
 	def clear_marked_lines(self):
 		"Clears any line marked by having it's id in the sorted list self.eliminate"
@@ -1036,6 +1041,8 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 				return True
 
 	def game_over(self):
+		self.boss.ingame=False
+		messagebox.showinfo("Game over!\n%d"%self.gameScore)
 		raise GameOverException()
 
 class Bag:
@@ -1092,14 +1099,18 @@ class GameOverException(Exception):
 	"""Exception occurs when the game is over. This serves the purpose of closing down threads."""
 	pass
 
+
 if __name__ == '__main__':
 	
 	#help(__name__)
 
 	root=Tk()
+
 	fr=GameDashboard(root)
-	fr.pack()
-	root.title("Tetrícia")
+	chat=ChatGui(root,os.environ['COMPUTERNAME'], '64164', os.environ['COMPUTERNAME']+'\\'+getpass.getuser())
+	fr.grid(row=0, column=0)
+	chat.grid(row=1, column=0)
+	#root.title("Tetrícia")
 	root.mainloop()
 
 
