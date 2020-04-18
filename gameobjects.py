@@ -38,7 +38,7 @@ class I:
 class T:
 	"""T - Tetromino behaviour description"""
 	def generate():
-		return {'type': T, 'coords': [(x,20) for x in range(4,7)]+[(5,21)], 'rot': 'N', 'color':'#800080', 'name':'T'}
+		return {'type': T, 'coords': [(x,20) for x in range(3,6)]+[(4,21)], 'rot': 'N', 'color':'#800080', 'name':'T'}
 	Defaults={'W':[(4,3),(4,4),(4,5),(3,4)],
 			  'N':[(3,4),(4,4),(5,4),(4,5)],
 			  'E':[(4,5),(4,4),(4,3),(5,4)],
@@ -50,7 +50,7 @@ class T:
 class L:
 	"""L - Tetromino behaviour description"""
 	def generate():
-		return {'type': L, 'coords': [(x,20) for x in range(4,7)]+[(6,21)], 'rot': 'N', 'color':'#ffa500', 'name':'L'}
+		return {'type': L, 'coords': [(x,20) for x in range(3,6)]+[(5,21)], 'rot': 'N', 'color':'#ffa500', 'name':'L'}
 	Defaults={'W':[(4,3),(4,4),(4,5),(3,5)],
 			  'N':[(3,4),(4,4),(5,4),(5,5)],
 			  'E':[(4,5),(4,4),(4,3),(5,3)],
@@ -63,7 +63,7 @@ class L:
 class J:
 	"""J - Tetromino behaviour description"""
 	def generate():
-		return {'type': J, 'coords': [(x,20) for x in range(4,7)]+[(4,21)], 'rot': 'N', 'color':'#0000ff', 'name':'J'}
+		return {'type': J, 'coords': [(x,20) for x in range(3,6)]+[(3,21)], 'rot': 'N', 'color':'#0000ff', 'name':'J'}
 	Defaults={'W':[(4,3),(4,4),(4,5),(3,3)],
 			  'N':[(3,4),(4,4),(5,4),(3,5)],
 			  'E':[(4,5),(4,4),(4,3),(5,5)],
@@ -76,7 +76,7 @@ class J:
 class S:
 	"""S - Tetromino behaviour description"""
 	def generate():
-		return {'type': S, 'coords': [(4,20),(5,20), (5,21),(6,21)], 'rot': 'N', 'color':'#00ff00', 'name':'S'}
+		return {'type': S, 'coords': [(3,20),(4,20), (4,21),(5,21)], 'rot': 'N', 'color':'#00ff00', 'name':'S'}
 	Defaults={'W':[(4,3),(4,4),(3,4),(3,5)],
 			  'N':[(3,4),(4,4),(4,5),(5,5)],
 			  'E':[(4,5),(4,4),(5,4),(5,3)],
@@ -88,7 +88,7 @@ class S:
 class Z:
 	"""Z - Tetromino behaviour description"""
 	def generate():
-		return {'type': Z, 'coords': [(5,20),(6,20), (4,21),(5,21)], 'rot': 'N', 'color':'#ff0000', 'name':'Z'}
+		return {'type': Z, 'coords': [(4,20),(5,20), (3,21),(4,21)], 'rot': 'N', 'color':'#ff0000', 'name':'Z'}
 	Defaults={'W':[(4,4),(4,5),(3,3),(3,4)],
 			  'N':[(4,4),(5,4),(3,5),(4,5)],
 			  'E':[(4,4),(4,3),(5,5),(5,4)],
@@ -101,7 +101,7 @@ class Z:
 class O:
 	"""O - Tetromino behaviour description"""
 	def generate():
-		return {'type': O, 'coords': [(5,20),(6,20), (5,21),(6,21)], 'rot': 'N', 'color':'#ffff00', 'name':'O'}
+		return {'type': O, 'coords': [(4,20),(5,20), (4,21),(5,21)], 'rot': 'N', 'color':'#ffff00', 'name':'O'}
 	Defaults={'W':[(4,4),(5,4),(4,5),(5,5)],
 			  'N':[(4,4),(5,4),(4,5),(5,5)],
 			  'E':[(4,4),(5,4),(4,5),(5,5)],
@@ -199,6 +199,7 @@ init(master, blocksize=30, level=1)
 			self.can.delete(ALL)
 			self.can.create_line(0,0,10*self.blocksize, 0, fill="white")
 			self.queue_can.delete(ALL)
+			self.queue_can.create_rectangle(0,0,7*self.blocksize,100, fill="cyan")
 			self.hold_can.delete(ALL)
 			self.ingame=True
 			self.bag.start()
@@ -443,6 +444,7 @@ class GameEngine(threading.Thread):
 				self.last_linedrop=now
 				self.linedrop()
 				self.send_coords()
+				self.send_stats()
 
 
 	def call_hard_drop(self):
@@ -690,6 +692,7 @@ to help the player manipulate it above the Skyline.
 			self.hold_slot=held
 			self.hold=False
 			self.place_hold(self.hold_slot)
+			self.send_hold()
 		else:
 		### Pick up the next tetromino from the Next Queue
 			self.hold=None
@@ -720,12 +723,12 @@ to help the player manipulate it above the Skyline.
 		self.boss.hold_can.delete(ALL)
 		curr=tetromino.generate()
 		bs=self.blocksize*0.85
-		dx=-50
+		dx=-(bs*(5/3))
 		if curr['type']==O:
-			dx=-60
+			dx=-(bs*2)
 		elif curr['type']==I:
-			dx=-40
-		[self.boss.hold_can.create_rectangle(dx+(bs*x),90-(y-19)*bs,dx+bs+(bs*x), 90-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']]
+			dx=-(bs*(4/3))
+		[self.boss.hold_can.create_rectangle(dx+(bs*x),(bs*3)-(y-19)*bs,dx+bs+(bs*x), (bs*3)-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']]
 
 
 	def falling_phase(self):
@@ -998,6 +1001,7 @@ then all Minos above that row(s) collapse, or fall by the number of complete row
 Points are awarded to the player according to the Tetris Scoring System,[...].
 """
 		self.send_elim()
+		self.send_stats()
 		self.clear_marked_lines()
 
 	def clear_marked_lines(self):
@@ -1061,7 +1065,8 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 
 	def game_over(self):
 		self.boss.ingame=False
-		messagebox.showinfo("Game over!\n%d"%self.gameScore)
+		self.send_over()
+		messagebox.showinfo("Game over!","Score: %s"%self.gameScore)
 		raise GameOverException()
 
 
@@ -1082,6 +1087,14 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 		"Format the string such that it can be evaluated later and forward it"
 		if not self.online:return
 		self.boss.master.update_server("#GAME#LOCK#0")
+	def send_hold(self):
+		"Format the string such that it can be evaluated later and forward it"
+		if not self.online:return
+		self.boss.master.update_server("#GAME#HOLD#0")
+	def send_over(self):
+		"Format the string such that it can be evaluated later and forward it"
+		if not self.online:return
+		self.boss.master.update_server("#GAME#OVER#0")
 	def send_elim(self):
 		"Format the string such that it can be evaluated later and forward it"
 		if not self.online:return
@@ -1090,6 +1103,11 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 			str1+=str(y)+','
 		str1+="]"
 		self.boss.master.update_server("#GAME#ELIM#"+str1)
+	def send_stats(self):
+		"Format the string such that it can be evaluated later and forward it"
+		if not self.online:return
+		self.boss.master.update_server("#GAME#STAT#[%d,%d,%d]"%(self.gameScore, self.levelScore, self.lineScore))
+	
 
 class Bag:
 	"""
@@ -1153,9 +1171,7 @@ if __name__ == '__main__':
 	root=Tk()
 
 	fr=GameDashboard(root)
-	chat=ChatGui(root,socket.gethostname(), '64164', socket.gethostname()+'\\'+getpass.getuser())
 	fr.grid(row=0, column=0)
-	chat.grid(row=1, column=0)
 	#root.title("Tetrícia")
 	root.mainloop()
 
