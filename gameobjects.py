@@ -18,14 +18,14 @@ https://tetris.fandom.com/wiki/Tetris_Guideline
 
 from tkinter import *
 import tkinter.ttk as ttk
-from random import randrange,shuffle
+from random import shuffle
 import threading,time
 from pynput.keyboard import Key, Listener
 from chat_gui import *
 class I:
 	"""I - Tetromino behaviour description"""
 	def generate():
-		return {'type': I, 'coords': [(x,20) for x in range(3,7)], 'rot': 'N', 'color':'#00ffff'}
+		return {'type': I, 'coords': [(x,20) for x in range(3,7)], 'rot': 'N', 'color':'#00ffff', 'name':'I'}
 	Defaults={'W':[(4,3),(4,4),(4,5),(4,6)],
 			  'N':[(3,5),(4,5),(5,5),(6,5)],
 			  'E':[(5,3),(5,4),(5,5),(5,6)],
@@ -38,7 +38,7 @@ class I:
 class T:
 	"""T - Tetromino behaviour description"""
 	def generate():
-		return {'type': T, 'coords': [(x,20) for x in range(4,7)]+[(5,21)], 'rot': 'N', 'color':'#800080'}
+		return {'type': T, 'coords': [(x,20) for x in range(4,7)]+[(5,21)], 'rot': 'N', 'color':'#800080', 'name':'T'}
 	Defaults={'W':[(4,3),(4,4),(4,5),(3,4)],
 			  'N':[(3,4),(4,4),(5,4),(4,5)],
 			  'E':[(4,5),(4,4),(4,3),(5,4)],
@@ -50,7 +50,7 @@ class T:
 class L:
 	"""L - Tetromino behaviour description"""
 	def generate():
-		return {'type': L, 'coords': [(x,20) for x in range(4,7)]+[(6,21)], 'rot': 'N', 'color':'#ffa500'}
+		return {'type': L, 'coords': [(x,20) for x in range(4,7)]+[(6,21)], 'rot': 'N', 'color':'#ffa500', 'name':'L'}
 	Defaults={'W':[(4,3),(4,4),(4,5),(3,5)],
 			  'N':[(3,4),(4,4),(5,4),(5,5)],
 			  'E':[(4,5),(4,4),(4,3),(5,3)],
@@ -63,7 +63,7 @@ class L:
 class J:
 	"""J - Tetromino behaviour description"""
 	def generate():
-		return {'type': J, 'coords': [(x,20) for x in range(4,7)]+[(4,21)], 'rot': 'N', 'color':'#0000ff'}
+		return {'type': J, 'coords': [(x,20) for x in range(4,7)]+[(4,21)], 'rot': 'N', 'color':'#0000ff', 'name':'J'}
 	Defaults={'W':[(4,3),(4,4),(4,5),(3,3)],
 			  'N':[(3,4),(4,4),(5,4),(3,5)],
 			  'E':[(4,5),(4,4),(4,3),(5,5)],
@@ -76,7 +76,7 @@ class J:
 class S:
 	"""S - Tetromino behaviour description"""
 	def generate():
-		return {'type': S, 'coords': [(4,20),(5,20), (5,21),(6,21)], 'rot': 'N', 'color':'#00ff00'}
+		return {'type': S, 'coords': [(4,20),(5,20), (5,21),(6,21)], 'rot': 'N', 'color':'#00ff00', 'name':'S'}
 	Defaults={'W':[(4,3),(4,4),(3,4),(3,5)],
 			  'N':[(3,4),(4,4),(4,5),(5,5)],
 			  'E':[(4,5),(4,4),(5,4),(5,3)],
@@ -88,7 +88,7 @@ class S:
 class Z:
 	"""Z - Tetromino behaviour description"""
 	def generate():
-		return {'type': Z, 'coords': [(5,20),(6,20), (4,21),(5,21)], 'rot': 'N', 'color':'#ff0000'}
+		return {'type': Z, 'coords': [(5,20),(6,20), (4,21),(5,21)], 'rot': 'N', 'color':'#ff0000', 'name':'Z'}
 	Defaults={'W':[(4,4),(4,5),(3,3),(3,4)],
 			  'N':[(4,4),(5,4),(3,5),(4,5)],
 			  'E':[(4,4),(4,3),(5,5),(5,4)],
@@ -101,7 +101,7 @@ class Z:
 class O:
 	"""O - Tetromino behaviour description"""
 	def generate():
-		return {'type': O, 'coords': [(5,20),(6,20), (5,21),(6,21)], 'rot': 'N', 'color':'#ffff00'}
+		return {'type': O, 'coords': [(5,20),(6,20), (5,21),(6,21)], 'rot': 'N', 'color':'#ffff00', 'name':'O'}
 	Defaults={'W':[(4,4),(5,4),(4,5),(5,5)],
 			  'N':[(4,4),(5,4),(4,5),(5,5)],
 			  'E':[(4,4),(5,4),(4,5),(5,5)],
@@ -135,6 +135,7 @@ init(master, blocksize=30, level=1)
 		#Is the player in the game right now?
 		self.ingame = False
 		self.paused = False
+		self.online=False
 
 		self.gameThread=None
 
@@ -177,7 +178,7 @@ init(master, blocksize=30, level=1)
 
 		#Bindings
 		#self.bind("<Destroy>", self._destroy)
-		self.master.protocol("WM_DELETE_WINDOW", self._destroy)
+		#self.master.protocol("WM_DELETE_WINDOW", self._destroy)
 		self.master.bind("<space>", self.button_space)
 		self.master.bind("c", self.button_c)
 
@@ -189,7 +190,6 @@ init(master, blocksize=30, level=1)
 		"Window closed event handler"
 		if self.ingame:
 			self.gameThread.call_quit()
-		self.master.after(200,self.master.destroy)
 
 	def start_new_game(self):
 		"Start a solo game"
@@ -197,11 +197,12 @@ init(master, blocksize=30, level=1)
 		if not self.ingame:
 			self.set_levels(self.level)
 			self.can.delete(ALL)
+			self.can.create_line(0,0,10*self.blocksize, 0, fill="white")
 			self.queue_can.delete(ALL)
 			self.hold_can.delete(ALL)
 			self.ingame=True
 			self.bag.start()
-			self.gameThread=GameEngine(self, self.can, self.blocksize, self.level,self.bag)
+			self.gameThread=GameEngine(self, self.can, self.blocksize, self.level,self.bag, self.online)
 			self.gameThread.start()
 
 	def button_space(self, event):
@@ -223,13 +224,13 @@ init(master, blocksize=30, level=1)
 
 class GameEngine(threading.Thread):
 	"""docstring for GameEngine"""
-	def __init__(self, boss, can, blocksize, level,bag):
+	def __init__(self, boss, can, blocksize, level,bag, online=False):
 		threading.Thread.__init__(self)
 		self.boss = boss
 		self.can = can
 		self.blocksize = blocksize
 		self.bag=bag
-
+		self.online=online
 		self.soft_drop_flag=False
 
 		#Game Phase tracker
@@ -441,6 +442,8 @@ class GameEngine(threading.Thread):
 				self.gameScore+=1
 				self.last_linedrop=now
 				self.linedrop()
+				self.send_coords()
+
 
 	def call_hard_drop(self):
 		"Set flag for a Hard Drop"
@@ -457,6 +460,7 @@ class GameEngine(threading.Thread):
 			self.spin_last=False
 		[self.linedrop() for x in range(distance)]
 		self.gameScore+=distance*2
+		self.send_coords()
 		self.lock_down()
 		self.hard_drop_flag=False
 
@@ -562,7 +566,6 @@ class GameEngine(threading.Thread):
 
 	def move_right(self):
 		"Attemps to move the Tetromino one block right. Returns True if successful and False if not."
-		self.move_right_flag=False
 		for x,y in self.active['coords']:
 			if x==9:return False
 			if self.GM[x+1][y]=='B':return False
@@ -587,7 +590,7 @@ class GameEngine(threading.Thread):
 
 	def move_left(self):
 		"Attemps to move the Tetromino one block left. Returns True if successful and False if not."
-		self.move_left_flag=False
+
 		for x,y in self.active['coords']:
 			if x==0:return False
 			if self.GM[x-1][y]=='B':return False
@@ -707,9 +710,9 @@ to help the player manipulate it above the Skyline.
 		
 		for i in self.active['objects']:
 			self.can.tag_raise(i)
-		#self.ghost={'coords':[self.active['coords'][x][0], self.active['coords'][x][1]-distance_from_surface]}
 
-
+		#Update the server
+		self.send_mino()
 		return 1
 
 	def place_hold(self, tetromino):
@@ -729,6 +732,9 @@ to help the player manipulate it above the Skyline.
 		"During falling, the player can rotate, move sideways, soft drop, hard drop or hold the Tetromino"
 		
 		while self.phase=="falling":
+			#coordinates
+			c1=self.active['coords'].copy()
+
 			if self.abandon:raise AbandonException()
 			if self.boss.paused: continue
 			if self.hold:
@@ -746,6 +752,7 @@ to help the player manipulate it above the Skyline.
 			if now-self.last_linedrop>=self.speed:
 				self.last_linedrop=now
 				self.linedrop()
+				self.send_coords()
 				continue
 
 			#Soft Drop?
@@ -772,6 +779,11 @@ to help the player manipulate it above the Skyline.
 					self.last_repeat=now
 					self.to_repeat()
 			self.boss.gameLock.release()
+
+			#Send to server if the coordinates have changed
+			if self.active['coords']!=c1:
+				self.send_coords()
+
 			
 
 		raise "Only the run() method should set the phase flag"
@@ -802,6 +814,7 @@ to help the player manipulate it above the Skyline.
 		
 		self.last_action=time.time()
 		while self.phase=="locking":##time.time()-timer<0.5:
+			c1=self.active['coords'].copy()
 			if self.abandon:raise AbandonException()
 			if self.boss.paused: continue
 			if self.hold:
@@ -855,6 +868,9 @@ to help the player manipulate it above the Skyline.
 						self.counter+=1
 						self.spin_last=False
 
+			if self.active['coords']!=c1:
+				self.send_coords()
+
 			if time.time()-self.last_action>=0.5:
 				self.lock_down()
 				return True
@@ -867,6 +883,8 @@ to help the player manipulate it above the Skyline.
 			self.OGM[x][y]=self.active['objects'][self.active['coords'].index((x,y))]
 		for x in self.ghost:
 			self.can.delete(x)
+
+		self.send_lock()
 
 	def pattern_phase(self):
 		"""
@@ -979,6 +997,7 @@ If this results in one or more complete 10-cell rows in the Matrix becoming unoc
 then all Minos above that row(s) collapse, or fall by the number of complete rows cleared from the Matrix.
 Points are awarded to the player according to the Tetris Scoring System,[...].
 """
+		self.send_elim()
 		self.clear_marked_lines()
 
 	def clear_marked_lines(self):
@@ -1045,6 +1064,33 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 		messagebox.showinfo("Game over!\n%d"%self.gameScore)
 		raise GameOverException()
 
+
+	def send_coords(self):
+		"Format the string such that it can be evaluated later and forward it"
+		if not self.online:return
+		str1="["
+		for x,y in self.active['coords']:
+			str1+="("+str(x)+","+str(y)+"),"
+		str1+="]"
+		self.boss.master.update_server("#GAME#COORDS#"+str1)
+
+	def send_mino(self):
+		"Format the string such that it can be evaluated later and forward it"
+		if not self.online:return
+		self.boss.master.update_server("#GAME#NEW#"+self.active['name'])
+	def send_lock(self):
+		"Format the string such that it can be evaluated later and forward it"
+		if not self.online:return
+		self.boss.master.update_server("#GAME#LOCK#0")
+	def send_elim(self):
+		"Format the string such that it can be evaluated later and forward it"
+		if not self.online:return
+		str1="["
+		for y in self.eliminate:
+			str1+=str(y)+','
+		str1+="]"
+		self.boss.master.update_server("#GAME#ELIM#"+str1)
+
 class Bag:
 	"""
 Tetris uses a “bag” system to determine the sequence of Tetriminos that appear during game play.
@@ -1107,7 +1153,7 @@ if __name__ == '__main__':
 	root=Tk()
 
 	fr=GameDashboard(root)
-	chat=ChatGui(root,os.environ['COMPUTERNAME'], '64164', os.environ['COMPUTERNAME']+'\\'+getpass.getuser())
+	chat=ChatGui(root,socket.gethostname(), '64164', socket.gethostname()+'\\'+getpass.getuser())
 	fr.grid(row=0, column=0)
 	chat.grid(row=1, column=0)
 	#root.title("Tetrícia")
