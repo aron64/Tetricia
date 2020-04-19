@@ -152,7 +152,7 @@ init(master, blocksize=30, level=1)
 
 		#Canvas of the next pieces
 		self.queue_can = Canvas(self, width=6*blocksize, height=20*blocksize+5, bg=self.bg)
-		self.queue_can.create_rectangle(0,0,7*blocksize,100, fill="cyan")
+		self.queue_can.create_rectangle(0,0,7*blocksize,blocksize*3.33, fill="cyan")
 		self.bag=Bag(self.queue_can, blocksize)
 
 		#Widget placements
@@ -205,7 +205,7 @@ init(master, blocksize=30, level=1)
 			self.can.delete(ALL)
 			self.can.create_line(0,0,10*self.blocksize, 0, fill="white")
 			self.queue_can.delete(ALL)
-			self.queue_can.create_rectangle(0,0,7*self.blocksize,100, fill="cyan")
+			self.queue_can.create_rectangle(0,0,7*self.blocksize,self.blocksize*3.33, fill="cyan")
 			self.hold_can.delete(ALL)
 			self.ingame=True
 			self.bag.start()
@@ -235,8 +235,9 @@ init(master, blocksize=30, level=1)
 class GameEngine(threading.Thread):
 	"""The main gameplay's Thread"""
 	def __init__(self, boss, can, blocksize, level,bag, online=False):
-
 		threading.Thread.__init__(self)
+		self.setDaemon(True)
+
 		self.boss = boss
 		self.can = can
 		self.blocksize = blocksize
@@ -245,7 +246,6 @@ class GameEngine(threading.Thread):
 		self.soft_drop_flag=False
 		#Game Phase tracker
 		self.phase="Inactive"
-
 		#Window closed?
 		self.abandon=False
 
@@ -760,11 +760,13 @@ to help the player manipulate it above the Skyline.
 		curr=tetromino.generate()
 		bs=self.blocksize*0.85
 		dx=-(bs*(5/3))
+		dy=0
 		if curr['type']==O:
 			dx=-(bs*2)
 		elif curr['type']==I:
-			dx=-(bs*(7/3))
-		[self.boss.hold_can.create_rectangle(dx+(bs*(x+1)),(bs*3)-(y-19)*bs,dx+bs+(bs*(x+1)), (bs*3)-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']]
+			dx=-(bs*2)
+			dy=-bs*0.5
+		[self.boss.hold_can.create_rectangle(dx+(bs*(x+0.5)),dy+(bs*3.5)-(y-19)*bs,dx+bs+(bs*(x+0.5)), dy+(bs*3.5)-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']]
 
 
 	def falling_phase(self):
@@ -1219,6 +1221,7 @@ This system allows for equal distribution among the seven Tetriminos.
 		self.next_queue=[]
 		self.bag=[]
 		self.objects=[]
+		self.orig_box=blocksize
 		self.blocksize=blocksize*(8/10)
 
 	def start(self):
@@ -1247,12 +1250,14 @@ This system allows for equal distribution among the seven Tetriminos.
 		if delete:
 			for i in self.objects[0]:
 				self.queue_can.delete(i)
+			del self.objects[0]
 		for i in self.objects:
 			for j in i:
-				self.queue_can.move(j, 0, -100)
+				self.queue_can.move(j, 0, -self.orig_box*3.33)
 		bs=self.blocksize
 		curr=mino.generate()
-		self.objects.append([self.queue_can.create_rectangle(-40+(bs*(x+1)),570-(y-19)*bs,-40+bs+(bs*(x+1)), 570-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']])
+		dx=self.orig_box*1.33
+		self.objects.append([self.queue_can.create_rectangle(-dx+(bs*(x+1)),self.orig_box*19-(y-19)*bs,-dx+bs+(bs*(x+1)), self.orig_box*19-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']])
 
 
 class AbandonException(Exception):

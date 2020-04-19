@@ -69,9 +69,7 @@ class Tetricia(Tk):
 		"Destroy event handler"
 		self.chat._delete_window()
 		self.panel._destroy()
-		# for x in self.players:
-		# 	self.players[x]._destroy()
-		self.after(5000,self.destroy)
+		self.after(200,self.destroy)
 
 	def opponent_control_test(self):
 		"test opponent.py"

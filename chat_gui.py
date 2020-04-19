@@ -250,8 +250,6 @@ Left click on pictures to save or open them in default size."""
             self.send(bytes('#fin#', 'utf-8'))
         except Exception as e:
             pass
-        finally:
-            self.master.destroy()
 
     def settings(self):
         self.costumize=Toplevel(self)
