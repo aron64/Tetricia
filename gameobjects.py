@@ -763,8 +763,8 @@ to help the player manipulate it above the Skyline.
 		if curr['type']==O:
 			dx=-(bs*2)
 		elif curr['type']==I:
-			dx=-(bs*(4/3))
-		[self.boss.hold_can.create_rectangle(dx+(bs*x),(bs*3)-(y-19)*bs,dx+bs+(bs*x), (bs*3)-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']]
+			dx=-(bs*(7/3))
+		[self.boss.hold_can.create_rectangle(dx+(bs*(x+1)),(bs*3)-(y-19)*bs,dx+bs+(bs*(x+1)), (bs*3)-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']]
 
 
 	def falling_phase(self):
@@ -1252,7 +1252,7 @@ This system allows for equal distribution among the seven Tetriminos.
 				self.queue_can.move(j, 0, -100)
 		bs=self.blocksize
 		curr=mino.generate()
-		self.objects.append([self.queue_can.create_rectangle(-40+(bs*x),570-(y-19)*bs,-40+bs+(bs*x), 570-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']])
+		self.objects.append([self.queue_can.create_rectangle(-40+(bs*(x+1)),570-(y-19)*bs,-40+bs+(bs*(x+1)), 570-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']])
 
 
 class AbandonException(Exception):

@@ -18,14 +18,14 @@ class OpponentDashboard(GameEngine,Frame):
 		self.hold_can = Canvas(self, width=6*blocksize, height=4*blocksize, bg=self.bg)
 
 		#Canvas of the next pieces
-		self.queue_can = Canvas(self, width=6*blocksize, height=20*blocksize+5, bg=self.bg)
-		self.queue_can.create_rectangle(0,0,7*blocksize,100, fill="cyan")
+		# self.queue_can = Canvas(self, width=6*blocksize, height=20*blocksize+5, bg=self.bg)
+		# self.queue_can.create_rectangle(0,0,7*blocksize,100, fill="cyan")
 		#self.bag=Bag(self.queue_can, blocksize)
 
 		#Widget placements
 		self.hold_can.grid(row=0, column=0,columnspan=2, padx=5, pady=5, sticky=N)
 		self.can.grid(row=0, column=2, pady=5, rowspan=5)
-		self.queue_can.grid(row=0, column=3, rowspan=5, padx=5, pady=5, sticky = N)
+		# self.queue_can.grid(row=0, column=3, rowspan=5, padx=5, pady=5, sticky = N)
 
 		#Font
 		self.font=font.Font(family='Comic Sans MS', size=12, weight='bold', slant='roman')
@@ -123,7 +123,8 @@ class OpponentDashboard(GameEngine,Frame):
 		# 	self.commands[action]()
 
 	def over(self):
-		exit()
+		self.can.create_line(0,0, 10*self.blocksize, 20*self.blocksize+5, fill="red", width=6)
+		self.can.create_line(10*self.blocksize, 0,0,20*self.blocksize+5, fill="red", width=6)
 
 	def new_mino(self, mino):
 		"Function to receive the type and coords of the new mino"
