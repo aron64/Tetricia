@@ -10,21 +10,25 @@ class Tetricia(Tk):
 	"""The main client application"""
 	def __init__(self):
 		Tk.__init__(self)
+		default_font = font.nametofont("TkDefaultFont")
+		default_font.config(family='Comic Sans MS')
+
 		self.protocol("WM_DELETE_WINDOW", self._destroy)
-		self.chat=ChatGui(self,socket.gethostname(), '64164', socket.gethostname()+'\\'+getpass.getuser())
+		self.chat=ChatGui(self,'91.82.61.127', '64164', socket.gethostname()+'\\'+getpass.getuser())
 		self.panel=GameDashboard(self)
 		self.panel.grid(row=0, column=0)
 		self.chat.grid(row=1,column=0)
 		self.players={}
 		self.title("Tetrícia")
 
-
 		#self.trial_start()
+
 	def add_player(self, name):
 		"When a new player joins the server, place their dashboard"
 		print("NEW:"+name)
 		self.players[name]=OpponentDashboard(20)
 		self.players[name].grid(row=0,column=len(self.players))
+		
 
 	def set_player(self, name, msg):
 		"Forward the action log to the corresponding panel"
@@ -35,11 +39,7 @@ class Tetricia(Tk):
 		"Send the up-to-date information to the server"
 		self.panel.netLock.acquire()
 		self.ready=False
-		#msg+="#"+self.chat.data[2].get()+chr(0)
 		msg=chr(0)+msg+"#"+self.chat.data[2].get()+chr(0)
-		# self.conn.send(bytes("#LEN#"+str(len(msg)),'utf-8'))
-		# while not self.ready:
-		# 	continue
 		self.conn.send(bytes(msg,'utf-8'))
 		self.panel.netLock.release()
 
@@ -52,6 +52,8 @@ class Tetricia(Tk):
 		"Destroy event handler"
 		self.chat._delete_window()
 		self.panel._destroy()
+		for x in self.players:
+			self.players[x]._destroy()
 		self.after(200,self.destroy)
 
 	def opponent_control_test(self):
