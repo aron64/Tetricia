@@ -18,8 +18,8 @@ https://tetris.fandom.com/wiki/Tetris_Guideline
 
 from tkinter import *
 import tkinter.ttk as ttk
-from random import shuffle
-import threading,time
+from random import shuffle, randrange
+import threading, time
 from pynput.keyboard import Key, Listener
 from chat_gui import *
 class I:
@@ -138,7 +138,7 @@ init(master, blocksize=30, level=1)
 		self.online=False
 
 		self.gameThread=None
-
+		
 		#Default background color
 		self.bg="black"
 
@@ -162,19 +162,25 @@ init(master, blocksize=30, level=1)
 
 		#Font
 		self.font=font.Font(family='Comic Sans MS', size=12, weight='bold', slant='roman')
+
 		#Labels:
 		self.label_frame=Frame(self)
 		self.label_frame.grid(row=4, column=0)
-		Label(self.label_frame,text="Points: ",font=self.font).grid(row=1, column=0, sticky="SW")
-		Label(self.label_frame,text="Level: ",font=self.font).grid(row=2, column=0, sticky="SW")
-		Label(self.label_frame,text="Lines cleared: ",font=self.font).grid(row=3, column=0, sticky="SW")
+		
+		Label(self.label_frame,text="Incoming Lines: \n\n",font=self.font).grid(row=0, column=0, sticky="NW")
+		self.l_attacks=Label(self.label_frame,text="0",font=self.font, fg="red")
+		self.l_attacks.grid(row=0, column=1, sticky="NW")
+
+		Label(self.label_frame,text="Points: ",font=self.font).grid(row=3, column=0, sticky="SW")
+		Label(self.label_frame,text="Level: ",font=self.font).grid(row=4, column=0, sticky="SW")
+		Label(self.label_frame,text="Lines cleared: ",font=self.font).grid(row=5, column=0, sticky="SW")
 		self.l_points=Label(self.label_frame,text="0",font=self.font)
 		self.l_levels=Label(self.label_frame,text="0",font=self.font)
 		self.l_lines=Label(self.label_frame,text="0",font=self.font)
 
-		self.l_points.grid(row=1, column=1, sticky="SW")
-		self.l_levels.grid(row=2, column=1, sticky="SW")
-		self.l_lines.grid(row=3, column=1, sticky="SW")
+		self.l_points.grid(row=3, column=1, sticky="SW")
+		self.l_levels.grid(row=4, column=1, sticky="SW")
+		self.l_lines.grid(row=5, column=1, sticky="SW")
 
 		#Bindings
 		#self.bind("<Destroy>", self._destroy)
@@ -183,7 +189,7 @@ init(master, blocksize=30, level=1)
 		self.master.bind("c", self.button_c)
 
 		#Button for test
-		self.startButton = ttk.Button(self, text="\nPLAY\n", command=self.start_new_game, width=28)
+		self.startButton = ttk.Button(self, text="\nPLAY\n", command=self.start_new_game, width=26)
 		self.startButton.grid(row=0, column=0,padx=8, sticky="S")
 
 	def _destroy(self):
@@ -222,10 +228,14 @@ init(master, blocksize=30, level=1)
 		self.l_levels.config(text="%d"%level)
 	def set_lines(self,lines):
 		self.l_lines.config(text="%d"%lines)
+	def set_attacks(self,lines):
+		self.l_attacks.config(text="%d"%lines)
 
+		
 class GameEngine(threading.Thread):
-	"""docstring for GameEngine"""
+	"""The main gameplay's Thread"""
 	def __init__(self, boss, can, blocksize, level,bag, online=False):
+
 		threading.Thread.__init__(self)
 		self.boss = boss
 		self.can = can
@@ -233,7 +243,6 @@ class GameEngine(threading.Thread):
 		self.bag=bag
 		self.online=online
 		self.soft_drop_flag=False
-
 		#Game Phase tracker
 		self.phase="Inactive"
 
@@ -256,13 +265,21 @@ class GameEngine(threading.Thread):
 
 		self.bonuses=["Single","Double","Triple","Tetris","Mini T-Spin","Mini T-Spin Single","T-Spin","T-Spin Single","T-Spin Double","T-Spin Triple"]
 		self.multiplier=[100,300,500,800,100,200,400,800,1200,1600]
+		self.attacks=[0,1,2,4,0,0,0,2,4,6]
+		if self.online:
+			self.players=len(self.boss.master.players)
+			if self.players>1:
+				self.attacks=[0,0,1,2,0,0,0,1,2,5]
+		
 		self.score={}
 		self._gameScore=0
 		self._lineScore=0
 		self._levelScore=level
+		self._newAttacks=0
 		self.gameScore=0
 		self.levelScore=level
 		self.lineScore=0
+		self.newAttacks=0
 
 		self.B2B=False
 		
@@ -287,6 +304,10 @@ class GameEngine(threading.Thread):
 
 		self.kb_listen=Listener(on_press=self.on_press, on_release=self.on_release)
 		self.kb_listen.start()
+
+		#Line attacks
+		self.gap_position=randrange(0,10)
+		self.lift_count=0
 
 	@property
 	def gameScore(self):
@@ -317,6 +338,16 @@ class GameEngine(threading.Thread):
 	def levelScore(self, value):
 		self._levelScore = value
 		self.boss.set_levels(self._levelScore)
+	@property
+	def newAttacks(self):
+		"""I'm the 'newAttacks' property."""
+		return self._newAttacks
+
+	@newAttacks.setter
+	def newAttacks(self, value):
+		self._newAttacks = value
+		self.boss.set_attacks(self._newAttacks)
+
 
 	def on_press(self, key):
 		"pynput event handler"
@@ -416,6 +447,9 @@ class GameEngine(threading.Thread):
 			print("Player abandoned.")
 		except GameOverException:
 			print("The game was over.")
+			while True:
+				self.check_opponents()
+
 		except Exception as e:
 			print(e)
 
@@ -638,9 +672,11 @@ If an existing Block is in the Tetrimino’s path, the Tetrimino does not drop o
 however, a few pixels of the generated Tetrimino are shown (hardware permitting)
 to help the player manipulate it above the Skyline.
 		"""
-
+		if self.newAttacks>0:
+			for x in range(self.newAttacks):
+				self.lift()
+		self.newAttacks=0
 		bs=self.blocksize
-
 		#Game speed
 		self.speed=(0.8 - ((self.levelScore - 1) * 0.007))**(self.levelScore - 1)
 		#Score in each turn will be logged in a dictionary
@@ -735,6 +771,7 @@ to help the player manipulate it above the Skyline.
 		"During falling, the player can rotate, move sideways, soft drop, hard drop or hold the Tetromino"
 		
 		while self.phase=="falling":
+			self.check_opponents()
 			#coordinates
 			c1=self.active['coords'].copy()
 
@@ -817,6 +854,7 @@ to help the player manipulate it above the Skyline.
 		
 		self.last_action=time.time()
 		while self.phase=="locking":##time.time()-timer<0.5:
+			self.check_opponents()
 			c1=self.active['coords'].copy()
 			if self.abandon:raise AbandonException()
 			if self.boss.paused: continue
@@ -877,6 +915,7 @@ to help the player manipulate it above the Skyline.
 			if time.time()-self.last_action>=0.5:
 				self.lock_down()
 				return True
+
 
 
 	def lock_down(self):
@@ -971,14 +1010,26 @@ This phase takes up no apparent game time.
 
 		print("Bonus:"+bonus)
 		points=0
+		attack=0
 		if len(bonus)>0:
 			points=self.multiplier[self.bonuses.index(bonus)]
+			attack=self.attacks[self.bonuses.index(bonus)]
 			print("+%d" %points)
 		if apply_b2b:
-			print("Back-To-Back +%d" %points*0.5)
+			print("Back-To-Back +%f" %(points*0.5))
 			points*=1.5
+			attack+=1
 
 		self.gameScore+=points
+
+		if self.newAttacks>=attack:
+			self.newAttacks-=attack
+			attack=0
+		elif self.newAttacks<attack:
+			attack-=self.newAttacks
+			self.newAttacks=0
+		if attack>0:
+			self.send_attack(attack)
 
 
 	def surfaces(self, list_):
@@ -1069,6 +1120,41 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 		messagebox.showinfo("Game over!","Score: %s"%self.gameScore)
 		raise GameOverException()
 
+	def receive_attacks(self,amount):
+		self.newAttacks+=amount
+	def lift(self):
+		"Manages receiving counter attacks"
+		#The game may be over here
+		self.check_topout()
+		bs=self.blocksize
+		#New gap position after every 8 garbage line
+		if self.lift_count%8==0:
+			new = randrange(0,10)
+			while new==self.gap_position:
+				new = randrange(0,10)
+			self.gap_position=new
+		self.lift_count+=1
+		for x in range(10):
+			for y in range(40):
+				if self.OGM[x][y]!=0:
+					self.can.move(self.OGM[x][y], 0, -self.blocksize)
+		for x in range(10):
+			del self.GM[x][39]
+			del self.OGM[x][39]
+			if x == self.gap_position:
+				self.GM[x][0:0]=[0]
+				self.OGM[x][0:0]=[0]
+				continue
+			self.GM[x][0:0]=['B']
+			self.OGM[x][0:0]=[self.can.create_rectangle(2+(bs*x),(19)*bs,2+bs+(bs*x), (20)*bs, fill="darkgray", outline="gray")]
+		self.send_lift(self.gap_position)
+
+
+	def check_topout(self):
+		"Only gets checked before a lift, ends the game if there's a tetromino part found in the 40th line"
+		for x in range(10):
+			if self.GM[x][39]=='B':
+				self.game_over()
 
 	def send_coords(self):
 		"Format the string such that it can be evaluated later and forward it"
@@ -1108,7 +1194,20 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 		if not self.online:return
 		self.boss.master.update_server("#GAME#STAT#[%d,%d,%d]"%(self.gameScore, self.levelScore, self.lineScore))
 	
+	def check_opponents(self):
+		if not self.online:return
+		for i in self.boss.master.players:
+			self.boss.master.players[i].run()
 
+	def send_attack(self, lines):
+		"Format the string such that it can be evaluated later and forward it"
+		if not self.online:return
+		self.boss.master.update_server("#GAME#ATTACK#%d"%(lines))
+	def send_lift(self, gap):
+		"Format the string such that it can be evaluated later and forward it"
+		if not self.online:return
+		self.boss.master.update_server("#GAME#LIFT#%d"%(gap))
+	
 class Bag:
 	"""
 Tetris uses a “bag” system to determine the sequence of Tetriminos that appear during game play.
@@ -1169,7 +1268,6 @@ if __name__ == '__main__':
 	#help(__name__)
 
 	root=Tk()
-
 	fr=GameDashboard(root)
 	fr.grid(row=0, column=0)
 	#root.title("Tetrícia")
@@ -1179,3 +1277,5 @@ if __name__ == '__main__':
 #TODO
 #Soft drop smoothing
 #Levels
+
+#SEND START SIGNAL

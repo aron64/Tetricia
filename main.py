@@ -14,7 +14,7 @@ class Tetricia(Tk):
 		default_font.config(family='Comic Sans MS')
 
 		self.protocol("WM_DELETE_WINDOW", self._destroy)
-		self.chat=ChatGui(self,'91.82.61.127', '64164', socket.gethostname()+'\\'+getpass.getuser())
+		self.chat=ChatGui(self,'aronsv.ddns.net', '64164', socket.gethostname()+'\\'+getpass.getuser())
 		self.panel=GameDashboard(self)
 		self.panel.grid(row=0, column=0)
 		self.chat.grid(row=1,column=0)
@@ -26,7 +26,7 @@ class Tetricia(Tk):
 	def add_player(self, name):
 		"When a new player joins the server, place their dashboard"
 		print("NEW:"+name)
-		self.players[name]=OpponentDashboard(20)
+		self.players[name]=OpponentDashboard(self,20)
 		self.players[name].grid(row=0,column=len(self.players))
 		
 
