@@ -125,32 +125,36 @@ init(master, blocksize=30, level=1)
 """
 	def __init__(self, master, blocksize=30, level=1, ):
 		Frame.__init__(self)
+		##Blocksize in pixels
 		self.blocksize = blocksize
+
+		##The level to start the game on
 		self.level=level
 
-		#Different lock object for gameplay and network interferences
+		##Different lock object for gameplay and network interferences
 		self.netLock = threading.Lock()
+		##Different lock object for gameplay and network interferences
 		self.gameLock = threading.Lock()
 
-		#Is the player in the game right now?
+		##Is the player in the game right now?
 		self.ingame = False
 		self.paused = False
 		self.online=False
 
 		self.gameThread=None
 		
-		#Default background color
+		##Default background color
 		self.bg="black"
 
-		#The main canvas and the map of the game
+		##The main canvas and the map of the game
 		self.can = Canvas(self, width=10*blocksize, height=20*blocksize+5, bg=self.bg)
 		self.can.create_line(0,0,10*blocksize, 0, fill="white")
 		self.can.yview_scroll(22, 'units')
 
-		#The hold canvas
+		##The hold canvas
 		self.hold_can = Canvas(self, width=6*blocksize, height=4*blocksize, bg=self.bg)
 
-		#Canvas of the next pieces
+		##Canvas of the Queue
 		self.queue_can = Canvas(self, width=6*blocksize, height=20*blocksize+5, bg=self.bg)
 		self.queue_can.create_rectangle(0,0,7*blocksize,blocksize*3.33, fill="cyan")
 		self.bag=Bag(self.queue_can, blocksize)
@@ -163,7 +167,7 @@ init(master, blocksize=30, level=1)
 		#Font
 		self.font=font.Font(family='Comic Sans MS', size=12, weight='bold', slant='roman')
 
-		#Labels:
+		##Frame containing our labels
 		self.label_frame=Frame(self)
 		self.label_frame.grid(row=4, column=0)
 		
@@ -188,17 +192,17 @@ init(master, blocksize=30, level=1)
 		self.master.bind("<space>", self.button_space)
 		self.master.bind("c", self.button_c)
 
-		#Button for test
+		##Play button to start playing
 		self.startButton = ttk.Button(self, text="\nPLAY\n", command=self.start_new_game, width=26)
 		self.startButton.grid(row=0, column=0,padx=8, sticky="S")
 
 	def _destroy(self):
-		"Window closed event handler"
+		"""Window closed event handler"""
 		if self.ingame:
 			self.gameThread.call_quit()
 
 	def start_new_game(self):
-		"Start a solo game"
+		"""Start a solo game"""
 		self.can.focus_set()
 		if not self.ingame:
 			self.set_levels(self.level)
@@ -213,22 +217,26 @@ init(master, blocksize=30, level=1)
 			self.gameThread.start()
 
 	def button_space(self, event):
-		"keyboard.space Event handler"
+		"""keyboard.space Event handler"""
 		if self.ingame and not self.paused:
 			self.gameThread.call_hard_drop()
 	def button_c(self, event):
-		"keyboard.c Event handler"
+		"""keyboard.c Event handler"""
 		if self.ingame and not self.paused:
 			self.gameThread.call_hold()
 
 	def set_points(self,points):
+		"""Update the corresponding stats tracking label"""
 		self.l_points.config(text="%d"%points)
 
 	def set_levels(self,level):
+		"""Update the corresponding stats tracking label"""
 		self.l_levels.config(text="%d"%level)
 	def set_lines(self,lines):
+		"""Update the corresponding stats tracking label"""
 		self.l_lines.config(text="%d"%lines)
 	def set_attacks(self,lines):
+		"""Update the corresponding stats tracking label"""
 		self.l_attacks.config(text="%d"%lines)
 
 		
@@ -309,6 +317,9 @@ class GameEngine(threading.Thread):
 		self.gap_position=randrange(0,10)
 		self.lift_count=0
 
+		#Online victory
+		self.win=False
+
 	@property
 	def gameScore(self):
 		"""I'm the 'gameScore' property."""
@@ -316,6 +327,7 @@ class GameEngine(threading.Thread):
 
 	@gameScore.setter
 	def gameScore(self, value):
+		"""I'm the setter of 'gameScore' property."""
 		self._gameScore = value
 		self.boss.set_points(self._gameScore)
 	
@@ -326,6 +338,7 @@ class GameEngine(threading.Thread):
 
 	@lineScore.setter
 	def lineScore(self, value):
+		"""I'm the setter of 'lineScore' property."""
 		self._lineScore = value
 		self.boss.set_lines(self._lineScore)
 	
@@ -336,6 +349,7 @@ class GameEngine(threading.Thread):
 
 	@levelScore.setter
 	def levelScore(self, value):
+		"""I'm the setter of 'levelScore' property."""
 		self._levelScore = value
 		self.boss.set_levels(self._levelScore)
 	@property
@@ -345,12 +359,13 @@ class GameEngine(threading.Thread):
 
 	@newAttacks.setter
 	def newAttacks(self, value):
+		"""I'm the setter of 'newAttacks' property."""
 		self._newAttacks = value
 		self.boss.set_attacks(self._newAttacks)
 
 
 	def on_press(self, key):
-		"pynput event handler"
+		"""pynput event handler"""
 		if self.pressed==key:
 			return True
 		elif key==Key.up and self.up_released==False:
@@ -384,7 +399,7 @@ class GameEngine(threading.Thread):
 			self.boss.gameLock.release()
 
 	def on_release(self,key):
-		"pynput event handler"
+		"""pynput event handler"""
 		if self.pressed==key:
 			self.boss.gameLock.acquire()
 			self.pressed=False
@@ -406,16 +421,20 @@ class GameEngine(threading.Thread):
 			self.call_soft_drop(False)
 
 	def reset_auto_repeat_cooldowns(self):
+		"""Set timers to 0 when an action just occured"""
 		self.last_repeat=0
 		self.timer_repeat=0
 
 
 	def call_quit(self):
-		"Call this to shut down the Engine Thread"
+		"""Call this to shut down the Engine Thread"""
 		self.abandon=True
+	def won(self):
+		"""Call this when the player won"""
+		self.win=True
 
 	def run(self):
-		"Run, run, run, run-runrunrunruuuuuuun!"
+		"""Run, run, run, run-runrunrunruuuuuuun!"""
 		try:
 			while True:
 				self.boss.ingame=True
@@ -447,27 +466,29 @@ class GameEngine(threading.Thread):
 			print("Player abandoned.")
 		except GameOverException:
 			print("The game was over.")
-			while True:
-				self.check_opponents()
+			if self.online:
+				while self.boss.master.playing:
+					self.check_opponents()
+				print("Exiting thread")
 
 		except Exception as e:
 			print(e)
 
 	def call_hold(self):
-		"Set flag to hold the piece"
+		"""Set flag to hold the piece"""
 		if self.phase not in ("falling", "locking"):
 			return
 		if self.hold==None:
 			self.hold=True
 	def call_soft_drop(self, logical=True):
-		"Set flag for a Soft Drop"
+		"""Set flag for a Soft Drop"""
 		if self.phase not in ("falling", "locking"):
 			return
 		self.soft_drop_flag=logical
 		return self.soft_drop_flag
 
 	def soft_drop(self):
-		"Method which excecutes a soft drop whenever off cooldown."
+		"""Method which excecutes a soft drop whenever off cooldown."""
 		#self.soft_drop_flag=False
 		now=time.time()
 		if now-self.last_linedrop<(self.speed/20):
@@ -482,14 +503,14 @@ class GameEngine(threading.Thread):
 
 
 	def call_hard_drop(self):
-		"Set flag for a Hard Drop"
+		"""Set flag for a Hard Drop"""
 
 		if self.phase not in ("falling", "locking"):
 			return
 		self.hard_drop_flag=True
 
 	def hard_drop(self):
-		"Method which excecutes a Hard Drop"
+		"""Method which excecutes a Hard Drop"""
 		#How much is it possible to drop?
 		distance=self.distance_from_surface()
 		if distance>0:
@@ -501,7 +522,7 @@ class GameEngine(threading.Thread):
 		self.hard_drop_flag=False
 
 	def distance_from_surface(self):
-		"Finds the lowest distance between an open surface and the active Tetromino"
+		"""Finds the lowest distance between an open surface and the active Tetromino"""
 		#How much is it possible to drop?
 		min_d=40
 		for x,y in self.active['coords']:
@@ -516,24 +537,24 @@ class GameEngine(threading.Thread):
 		return min_d
 
 	def get_quarter(self, original, direction):
-		"Original quarter: NSWE: 1 char\nDirection: Left=-1, Right=+1"
+		"""Original quarter: NSWE: 1 char\nDirection: Left=-1, Right=+1"""
 		qrtrs=['E', 'N', 'W', 'S']
 		return qrtrs[(qrtrs.index(original)+direction)%4]
 
 	def call_rotate_cw(self):
-		"Set flag for a Clockwise Rotation"
+		"""Set flag for a Clockwise Rotation"""
 		if self.phase not in ("falling", "locking"):
 			return
 		self.rotate_cw_flag=True
 
 	def call_rotate_ccw(self):
-		"Set flag for a Clockwise Rotation"
+		"""Set flag for a Clockwise Rotation"""
 		if self.phase not in ("falling", "locking"):
 			return
 		self.rotate_ccw_flag=True
 
 	def rotate(self, counter_clockwise=False):
-		"Clockwise rotation event = RIGHT"
+		"""Clockwise rotation event = RIGHT"""
 		#Reset flag
 		if counter_clockwise:
 			self.rotate_ccw_flag=False
@@ -572,7 +593,7 @@ class GameEngine(threading.Thread):
 
 
 	def SRS(self,from_, to_, coords, matrix, Tetromino):
-		"Super Rotation System - coordinate calculor"
+		"""Super Rotation System - coordinate calculor"""
 		for P in range(5):
 			#return I.west(P,I.Points['N'][P])
 			#new_coords=I.west(P,I.Points['N'][P])
@@ -601,7 +622,7 @@ class GameEngine(threading.Thread):
 			return map_coords
 
 	def move_right(self):
-		"Attemps to move the Tetromino one block right. Returns True if successful and False if not."
+		"""Attemps to move the Tetromino one block right. Returns True if successful and False if not."""
 		for x,y in self.active['coords']:
 			if x==9:return False
 			if self.GM[x+1][y]=='B':return False
@@ -625,7 +646,7 @@ class GameEngine(threading.Thread):
 		return True
 
 	def move_left(self):
-		"Attemps to move the Tetromino one block left. Returns True if successful and False if not."
+		"""Attemps to move the Tetromino one block left. Returns True if successful and False if not."""
 
 		for x,y in self.active['coords']:
 			if x==0:return False
@@ -650,7 +671,7 @@ class GameEngine(threading.Thread):
 		return True
 
 	def ghost_adjust(self):
-		"This method adjusts the ghost piece to the new position. Each turn or horizontal move action should call this."
+		"""This method adjusts the ghost piece to the new position. Each turn or horizontal move action should call this."""
 		distance=self.distance_from_surface()
 		bs=self.blocksize
 		i=0
@@ -672,9 +693,17 @@ If an existing Block is in the Tetrimino’s path, the Tetrimino does not drop o
 however, a few pixels of the generated Tetrimino are shown (hardware permitting)
 to help the player manipulate it above the Skyline.
 		"""
+		if self.win:
+			self.eliminate=[x for x in range(40)]
+			self.eliminate_phase()
+			self.send_won()
+			self.boss.ingame=False
+			messagebox.showinfo("You won!","Score: %s"%self.gameScore)
+			raise GameOverException()
 		if self.newAttacks>0:
 			for x in range(self.newAttacks):
 				self.lift()
+				time.sleep(0.05)
 		self.newAttacks=0
 		bs=self.blocksize
 		#Game speed
@@ -684,7 +713,7 @@ to help the player manipulate it above the Skyline.
 		#Lowest line tracker
 		self.lowest_line_reached=21
 
-		#### Flags ####
+		#Reset Flags
 		#Did a hard drop occur?
 		self.hard_drop_flag=False
 		#Soft drop?
@@ -730,7 +759,7 @@ to help the player manipulate it above the Skyline.
 			self.place_hold(self.hold_slot)
 			self.send_hold()
 		else:
-		### Pick up the next tetromino from the Next Queue
+		#   Pick up the next tetromino from the Next Queue
 			self.hold=None
 			self.active=self.bag.next().generate()
 
@@ -855,7 +884,7 @@ to help the player manipulate it above the Skyline.
 		"During lock phase the player still rotate or move according to Extendended Placement Lockdown\nLock after: 0.5s\nAction limit: 15 actions"
 		
 		self.last_action=time.time()
-		while self.phase=="locking":##time.time()-timer<0.5:
+		while self.phase=="locking":
 			self.check_opponents()
 			c1=self.active['coords'].copy()
 			if self.abandon:raise AbandonException()
@@ -1004,8 +1033,10 @@ This phase takes up no apparent game time.
 		apply_b2b=False
 		if bonus in ("Tetris", "T-Spin Single",  "T-Spin Double", "T-Spin Triple", "Mini T-Spin Single"):
 			if self.B2B:
+				self.send_bonus("Back-To-Back "+bonus+"!")
 				apply_b2b=True
 			else:
+				self.send_bonus(bonus+"!")
 				self.B2B=True
 		elif bonus not in ("Mini T-Spin", "T-Spin"):
 			self.B2B=False
@@ -1153,13 +1184,13 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 
 
 	def check_topout(self):
-		"Only gets checked before a lift, ends the game if there's a tetromino part found in the 40th line"
+		"""Only gets checked before a lift, ends the game if there's a tetromino part found in the 40th line"""
 		for x in range(10):
 			if self.GM[x][39]=='B':
 				self.game_over()
 
 	def send_coords(self):
-		"Format the string such that it can be evaluated later and forward it"
+		"""Format the string such that it can be evaluated later and forward it"""
 		if not self.online:return
 		str1="["
 		for x,y in self.active['coords']:
@@ -1168,23 +1199,23 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 		self.boss.master.update_server("#GAME#COORDS#"+str1)
 
 	def send_mino(self):
-		"Format the string such that it can be evaluated later and forward it"
+		"""Format the string such that it can be evaluated later and forward it"""
 		if not self.online:return
 		self.boss.master.update_server("#GAME#NEW#"+self.active['name'])
 	def send_lock(self):
-		"Format the string such that it can be evaluated later and forward it"
+		"""Format the string such that it can be evaluated later and forward it"""
 		if not self.online:return
 		self.boss.master.update_server("#GAME#LOCK#0")
 	def send_hold(self):
-		"Format the string such that it can be evaluated later and forward it"
+		"""Format the string such that it can be evaluated later and forward it"""
 		if not self.online:return
 		self.boss.master.update_server("#GAME#HOLD#0")
 	def send_over(self):
-		"Format the string such that it can be evaluated later and forward it"
+		"""Format the string such that it can be evaluated later and forward it"""
 		if not self.online:return
 		self.boss.master.update_server("#GAME#OVER#0")
 	def send_elim(self):
-		"Format the string such that it can be evaluated later and forward it"
+		"""Format the string such that it can be evaluated later and forward it"""
 		if not self.online:return
 		str1="["
 		for y in self.eliminate:
@@ -1192,7 +1223,7 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 		str1+="]"
 		self.boss.master.update_server("#GAME#ELIM#"+str1)
 	def send_stats(self):
-		"Format the string such that it can be evaluated later and forward it"
+		"""Format the string such that it can be evaluated later and forward it"""
 		if not self.online:return
 		self.boss.master.update_server("#GAME#STAT#[%d,%d,%d]"%(self.gameScore, self.levelScore, self.lineScore))
 	
@@ -1202,14 +1233,21 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 			self.boss.master.players[i].run()
 
 	def send_attack(self, lines):
-		"Format the string such that it can be evaluated later and forward it"
+		"""Format the string such that it can be evaluated later and forward it"""
 		if not self.online:return
 		self.boss.master.update_server("#GAME#ATTACK#%d"%(lines))
 	def send_lift(self, gap):
-		"Format the string such that it can be evaluated later and forward it"
+		"""Format the string such that it can be evaluated later and forward it"""
 		if not self.online:return
 		self.boss.master.update_server("#GAME#LIFT#%d"%(gap))
-	
+	def send_won(self):
+		"""Format the string such that it can be evaluated later and forward it"""
+		if not self.online:return
+		self.boss.master.update_server("#GAME#WON#0")
+	def send_bonus(self, bonus):
+		if not self.online:return
+		self.boss.master.update_server("#GAME#ANNOUNCE#%s"%bonus)
+		self.boss.master.chat.write("You had a "+bonus)
 class Bag:
 	"""
 Tetris uses a “bag” system to determine the sequence of Tetriminos that appear during game play.
@@ -1220,12 +1258,14 @@ This system allows for equal distribution among the seven Tetriminos.
 		self.queue_can=queue_can
 		self.next_queue=[]
 		self.bag=[]
+		##tkinter graphical objects
 		self.objects=[]
+		##Original blocksize
 		self.orig_box=blocksize
 		self.blocksize=blocksize*(8/10)
 
 	def start(self):
-		"Initialize the first Bag and Next Queue"
+		"""Initialize the first Bag and Next Queue"""
 		self.bag=self.minos.copy()
 		shuffle(self.bag)
 		self.next_queue=self.bag[:6]
@@ -1234,7 +1274,7 @@ This system allows for equal distribution among the seven Tetriminos.
 		del self.bag[:6]
 		
 	def next(self):
-		"Return the next tetromino for the Game Engine, and step the que forward"
+		"""Return the next tetromino for the Game Engine, and step the que forward"""
 		ret=self.next_queue[0]
 		del self.next_queue[0]
 		self.next_queue.append(self.bag[0])
