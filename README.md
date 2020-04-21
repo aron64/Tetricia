@@ -8,7 +8,7 @@ Guidelines: https://www.dropbox.com/s/g55gwls0h2muqzn/tetris%20guideline%20docs%
     * tkinter, ttk
     * pynput - pip install pynput
     * PIL - pip install pillow
-* Runs on most OS with GUI and networking
+* Tested on Windows 7
 
 # Usage
 * Server
