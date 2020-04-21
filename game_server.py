@@ -7,6 +7,13 @@ import socket, sys, threading,time
 PORT = 64164
 HOST = '192.168.0.64'#socket.gethostname()
 
+
+
+#SHOULD BE 2 or 5
+MAXUSER = int(input("User limit (2 or 5): "))
+
+STARTLEVEL = 1
+
 class ThreadClient(threading.Thread):
     """heritance of a thread-object to communicate with the client"""
     def __init__(self, conn, thname):
@@ -14,7 +21,7 @@ class ThreadClient(threading.Thread):
         self.conn = conn
     
     def run(self):
-        global glob_ready
+        global glob_ready, STARTLEVEL
         #Communication with client
         name= self.getName()        # All threads have an ID
         while True:
@@ -35,7 +42,7 @@ class ThreadClient(threading.Thread):
                 print(msgClient)
             if msgClient=='#fin#' or msgClient=="":
                 break
-            if msgClient=='online.get':
+            if msgClient=='help.get':
                 x=True
                 locking.acquire()
                 for client in conn_Cli:
@@ -44,7 +51,16 @@ class ThreadClient(threading.Thread):
                         x=False
                         time.sleep(0.5)
                 if x: sendmsg(conn_Cli[name],bytes("SERVER>>> Currently you are the only one online", 'utf-8'))
+                sendmsg(conn_Cli[name],bytes("#LEVEL#%s"%STARTLEVEL, 'utf-8'))
                 locking.release()
+                continue
+            if msgClient.startswith("!level"):
+                STARTLEVEL=int(msgClient.split()[1])
+                for client in conn_Cli:
+                    if client!=name:
+                        message="%s> %s" % (name, msgClient)
+                        sendmsg(conn_Cli[client],bytes(message, 'utf-8'))
+                    sendmsg(conn_Cli[client],bytes("#LEVEL#%s"%STARTLEVEL, 'utf-8'))
                 continue
             if msgClient.startswith("#pic#"):
                 glob_ready=False
@@ -70,12 +86,6 @@ class ThreadClient(threading.Thread):
                 locking.release()
                 glob_ready=True
                 continue
-            # if msgClient.startswith("#LEN#"):
-            #     locking.acquire()
-            #     length=int(msgClient.split("#LEN#")[1])
-            #     sendmsg(conn_Cli[name],bytes("#OK#"+"#END#",'utf-8'))
-            #     msgClient=self.conn.recv(length).decode('utf-8')
-            #     locking.release()
             if msgClient.startswith("#GAME#"):
                 locking.acquire()
                 for client in conn_Cli:
@@ -97,10 +107,11 @@ class ThreadClient(threading.Thread):
         locking.acquire()
         for client in conn_Cli:
             if client!=name:
-                sendmsg(conn_Cli[client],bytes("SERVER>>> %s Lekapcsolódott."%name, 'utf-8'))
+                sendmsg(conn_Cli[client],bytes("#DELETE#%s"%name, 'utf-8'))
+                sendmsg(conn_Cli[client],bytes("SERVER>>> %s Has disconnected."%name, 'utf-8'))
         locking.release()
         del conn_Cli[name]          # deleting reg from dictionary
-        print("A kliens %s lekapcsolódott"%name)
+        print("Client, %s has disconnected."%name)
         #End of thread
 
 
@@ -114,10 +125,10 @@ mySocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     mySocket.bind((HOST, PORT))
 except socket.error:
-    print("A socketet nem sikerült összekapcsolni a válaszott címmel.")
+    print("Didn't manage to bind the socket with this address..")
     time.sleep(2)
     sys.exit()
-print("A server kész, várakozás a kérésekre...")
+print("Server is ready, waiting...")
 mySocket.listen()
 
 # Managing connecting clients
@@ -138,15 +149,15 @@ while True:
         # Registering the connection
         it= th.getName()
         conn_Cli[it]=connec
-        print("Kliens %s felkapcsolódott, IP cím %s, port %s." \
+        print("Client, %s has connected, IP address %s, port %s." \
                                 % (it, addr[0], addr[1]))
+        locking.acquire()
         connec.send(bytes(name, 'utf-8'))
         sendmsg(connec,bytes("SERVER>>> Successful connection, welcome, %s"%it, 'utf-8'))
-        time.sleep(0.3)
-        locking.acquire()
+        sendmsg(connec,bytes("#MAXUSER#%s"%MAXUSER, 'utf-8'))
         for client in conn_Cli:
             if client!=name:
-                sendmsg(conn_Cli[client], bytes("SERVER>>> Client %s connected to the server, IP cím %s, port %s." \
+                sendmsg(conn_Cli[client], bytes("SERVER>>> Client %s connected to the server, IP address %s, port %s." \
                                 % (it, addr[0], addr[1]), 'utf-8'))
                 sendmsg(conn_Cli[client],bytes("#PLAYER#%s"%name, 'utf-8'))
                 sendmsg(connec,bytes("#PLAYER#%s"%client, 'utf-8'))
