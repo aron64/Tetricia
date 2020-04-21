@@ -29,7 +29,7 @@ Guidelines: https://www.dropbox.com/s/g55gwls0h2muqzn/tetris%20guideline%20docs%
    * Arrow Up: Rotate clockwise
    * Left Ctrl: Rotate counter-clockwise
    * Space: Hard Drop
-   * C: Hold
+   * C, Left shift: Hold
    * F11: Fullscreen mode *(multiplayer only)*
    * Escape: Exit Fullscreen mode *(multiplayer only)*
 
