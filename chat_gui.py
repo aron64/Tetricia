@@ -92,6 +92,7 @@ Left click on pictures to save or open them in default size."""
         #self.connect()
 
     def popup(self, event):
+        """Rightclick on the chat log event handler"""
         menu = Menu(self, tearoff=0)
         menu.add_command(label="Background color", command= lambda: self.set_layout('b'))
         menu.add_command(label="Text color", command= lambda: self.set_layout('f'))
@@ -101,6 +102,7 @@ Left click on pictures to save or open them in default size."""
         menu.post(event.x_root, event.y_root)
 
     def set_layout(self, ground):
+        """Reconfigure the textbox"""
         if ground=='f':
             self.foreground = tkinter.colorchooser.askcolor()[1]
         elif ground=='b':
@@ -114,16 +116,19 @@ Left click on pictures to save or open them in default size."""
         self.textbox.config(foreground=self.foreground, background=self.background, selectbackground=self.selectbackground, selectforeground=self.selectforeground)
     
     def set_font(self, font):
+        """Set the new font in the chat"""
         self.font=font
         self.textbox.config(font=self.font)
         self.e_out.config(font=self.font)
 
     def disconnect(self):
+        """Disconnect from the server."""
         try:
             self.send(bytes('#fin#', 'utf-8'))
             self.write('Lekapcsolódott.')
         except Exception as e:
             pass
+        self.master.drop_connection()
         self.connected=False
         self.b_settings.config(state=NORMAL)
         self.b_connect.config(state=NORMAL)
@@ -132,6 +137,7 @@ Left click on pictures to save or open them in default size."""
         self.b_picout.config(state=DISABLED)
 
     def connect(self):
+        """Connect to server"""
         self.connection=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.write("Connecting... - IPv4: {0}, Port: {1}".format(self.data[0].get(),self.data[1].get()))
         HOST, PORT=self.data[0].get(),int(self.data[1].get())
@@ -156,19 +162,22 @@ Left click on pictures to save or open them in default size."""
         self.b_picout.config(state=NORMAL)
         self.b_connect.config(state=DISABLED)
         self.th_rec=ThreadReception(self.connection, self)
-        #self.th_emis=ThreadEmission(self.connection, self)
+        #self.th_emis=ThreadImageOut(self.connection, self)
         self.th_rec.start()
-        self.send(bytes('online.get', 'utf-8'))
+        self.send(bytes('help.get', 'utf-8'))
         #self.th_emis.start()
     def prog_setter(self,x, length):
+        """Set the progression of the progressbar, while receiving an image."""
         self.prog_iv.set(x)
         self.prog_lab_sv.set("{0} %".format(int(x/length*100)))  #{:.2f}
         if (x/length)==1:
             self.prog_lab_sv.set(self.prog_lab_sv.get()+" processed!")
     def prog_getter(self):
+        """Getter for the progressbar state"""
         return self.prog_iv.get()
 
     def sendmsg(self, event=None):
+        """Send a message to the chat"""
         if self.connected:
             if len(self.message.get())>0:
                 self.write(self.data[2].get()+'> '+self.message.get())
@@ -179,6 +188,7 @@ Left click on pictures to save or open them in default size."""
 
 
     def img_send(self):
+        """Send an image to the chat"""
         imgfile =  filedialog.askopenfilename(initialdir = self.initdir,title = "Select file",filetypes = (("jpeg files","*.jpg"),("png files","*.png")))
         if imgfile!='':
             self.initdir=imgfile
@@ -187,7 +197,7 @@ Left click on pictures to save or open them in default size."""
             self.sending=self.images[-1]
             self.send(bytes("#pic#"+str(len(self.sending))+"#pic#"+str(mode)+"#pic#"+str(size[0])+"#pic#"+str(size[1]), 'utf-8'))
             self.prog['maximum']=len(self.sending)
-            send_th=ThreadEmission(self.connection, self, self.sending)
+            send_th=ThreadImageOut(self.connection, self, self.sending)
             send_th.start()
             
             #self.send(sending)
@@ -195,6 +205,7 @@ Left click on pictures to save or open them in default size."""
 
 
     def img_show(self, imgfile, mode, size0, size1, name):
+        """Method to display the image in the chat"""
         self.write('')
         self.full_imgs.append(Image.frombytes(mode,(size0,size1),self.images[-1]))
         self.imgTk=ImageTk.PhotoImage(image=self.resized(self.full_imgs[-1]))
@@ -210,17 +221,20 @@ Left click on pictures to save or open them in default size."""
         self.textbox.tag_bind('pic'+str(self.imgrefs[-1][1]), '<Button-1>', lambda func: self.img_popup(func, x))
 
     def img_popup(self, event, img):
+        """Method to handle Left-Click on images."""
         menu = Menu(self, tearoff=0)
         menu.add_command(label="Show", command= lambda: self.img_show_full(img[1]))
         menu.add_command(label="Save", command= lambda: self.img_save(img))
         menu.post(event.x_root, event.y_root)
 
     def img_show_full(self, img):
+        """Method to open image in the OS's default image inspector"""
         self.full_imgs[img].show()
         self.textbox.yview_moveto(1.0)
         self.textbox.mark_set(INSERT, END)
 
     def img_save(self,img):
+        """Method to save the image to the computer."""
         filepath= filedialog.asksaveasfilename(parent=self,initialfile=img[2], defaultextension="*.jpg", initialdir = self.initdir,title = "Choose dir",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
         if bool(filepath):
             self.initdir=filepath
@@ -229,6 +243,7 @@ Left click on pictures to save or open them in default size."""
 
 
     def resized(self, img):
+        """Resize the image, to fit in the chatbox"""
         if img.width>self.textbox.winfo_width():
             multip=img.width/self.textbox.winfo_width()
             size = int(img.width/multip), int(img.height/multip)
@@ -239,6 +254,7 @@ Left click on pictures to save or open them in default size."""
             img = img.resize(size)
         return img
     def write(self, text):
+        """Any chatlogs should be inserted to the textbox by this method"""
         self.textbox.config(state=NORMAL)
         self.textbox.insert(END, '\n'+text)
         self.textbox.yview_moveto(1.0)
@@ -246,12 +262,14 @@ Left click on pictures to save or open them in default size."""
 
         
     def _delete_window(self):
+        """On destroying the window"""
         try:
             self.send(bytes('#fin#', 'utf-8'))
         except Exception as e:
             pass
 
     def settings(self):
+        """Toplevel window to costumize connection settings"""
         self.costumize=Toplevel(self)
         self.costumize.grab_set()
         labels=['IP cím: ','Port: ', 'Név: ']
@@ -273,17 +291,20 @@ Left click on pictures to save or open them in default size."""
         self.costumize.resizable(0,0)
         self.costumize.transient(self.costumize.master)
     def set_destroyed(self):
+        """Settings window closed without save"""
         self.costumize.destroy()
         self.write('A beállítások nem módusltak.')
     def save(self,window, settings):
+        """Settings window closed with save"""
         window.destroy()
         x= [i.get() for i in self.data]
         self.data=settings
         for i in range(3):
             if self.data[i].get()!=x[i]:
-                self.write("Beállítása módosult: "+x[i]+" -> "+self.data[i].get())
+                self.write("Settings modified: "+x[i]+" -> "+self.data[i].get())
 
     def send(self,msg):
+        """Send message to the server accordingly to the uniquely desinged protocol"""
         self.connection.send(bytes(chr(0),'utf-8'))
         self.connection.send(msg)
         self.connection.send(bytes(chr(0),'utf-8'))
@@ -317,6 +338,7 @@ class SetFontTk(Toplevel):
         self.transient(self.master)
     
     def end(self):
+        """Upon saving font configuration"""
         self.font=font.Font(family=self.combos[0].get(), size=self.combos[1].get(), weight=self.combos[2].get(), slant=self.combos[3].get())
         self.master.set_font(self.font)
         self.destroy()
@@ -328,36 +350,24 @@ class ThreadReception(threading.Thread):
         threading.Thread.__init__(self)
         self.conn = conn                    #ref to socket
         self.root = root
-        
+        self.setDaemon(True)
     def run(self):
+        """Coninously check for incoming packets and decode them accordingly to the protocol"""
         while True:
-            # length=self.conn.recv(100).decode('utf-8')
-            # if not length.startswith("#LEN#"):
-            #     print(length)
-            # self.conn.send(bytes("#OK#", 'utf-8'))
-            # length=length.split("#LEN#")[1]
             start=self.conn.recv(1).decode('UTF-8')
             if start!=chr(0):
                 print(start)
                 if start=="":break
             else:
                 inbox=''
-                timer1=time.time()
                 while True:
                     try:
                         curr=self.conn.recv(1).decode('UTF-8')
                         if curr==chr(0):
                             break
-                        # if chr(0) in curr:
-                        #     inbox+=curr[:curr.index(chr(0))]
-                        #     curr=curr[curr.index(chr(0))+1:]
-                        #     break
                         inbox+=curr
                     except Exception as e:
                         print("Log: ", curr, "\nError: ", e)
-                print(time.time()-timer1)
-            # elif inbox.startswith("#OK#"):
-            #     self.root.master.ready=True
             if inbox.startswith("#pic#"):
                 self.root.b_picout.config(state=DISABLED)
                 img_data=inbox.split("#pic#")
@@ -379,19 +389,48 @@ class ThreadReception(threading.Thread):
             elif inbox.startswith("#PLAYER#"):
                 name=inbox.split("#")[-1]
                 self.root.master.add_player(name)
+            elif inbox.startswith("#DELETE#"):
+                name=inbox.split("#")[-1]
+                self.root.master.remove_player(name)
+            elif inbox.startswith("#LEVEL#"):
+                level=inbox.split("#")[-1]
+                self.root.write("Game difficulcity: LEVEL %s"%level)
+                self.root.master.set_level(int(level))
+            elif inbox.startswith("#MAXUSER#"):
+                num=inbox.split("#")[-1]
+                self.root.write("Maximum users: %s"%num)
+                self.root.master.set_scale(int(num))
+            elif inbox.startswith("#GAME#READY#"):
+                name=inbox.split("#")[-1]
+                self.root.write(name+" is ready to play!")
+                self.root.master.set_ready(name)
+            elif inbox.startswith("#GAME#ANNOUNCE#"):
+                name=inbox.split("#")[-1]
+                bonus=inbox.split("#")[-2]
+                self.root.write(name+" had a "+bonus)
+                self.root.master.set_ready(name)
+            
+            elif inbox.startswith("#GAME#WON#"):
+                inbox=inbox.split("#GAME#")
+                x=inbox[1]
+                name=x.split("#")[-1]
+                self.root.master.set_player(name, x.split("#")[0:2])
+                #ANNOUNCE
+                self.root.write(name+" has won this round!")
+
             elif inbox.startswith("#GAME#"):
                 inbox=inbox.split("#GAME#")
-                for x in inbox[1:]:
-                    name=x.split("#")[-1]
-                    self.root.master.set_player(name, x.split("#")[0:2])
+                x=inbox[1]
+                name=x.split("#")[-1]
+                self.root.master.set_player(name, x.split("#")[0:2])
             else:
                 self.root.write(inbox)
             ##### pil.image.frombytes
         self.conn.close()
         # Received a final message
 
-class ThreadEmission(threading.Thread):
-    """docstring for ThreadEmission"""
+class ThreadImageOut(threading.Thread):
+    """Class that handles image sending"""
     def __init__(self, conn, root,msg):
         threading.Thread.__init__(self)
         self.conn = conn                    #ref to socket
