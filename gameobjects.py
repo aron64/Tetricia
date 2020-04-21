@@ -193,7 +193,7 @@ init(master, blocksize=30, level=1)
 		self.master.bind("c", self.button_c)
 
 		##Play button to start playing
-		self.startButton = ttk.Button(self, text="\nPLAY\n", command=self.start_new_game, width=26)
+		self.startButton = ttk.Button(self, text="\nPLAY\n", command=self.start_new_game, width=int(0.85*blocksize))
 		self.startButton.grid(row=0, column=0,padx=8, sticky="S")
 
 	def _destroy(self):
@@ -1183,6 +1183,12 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 		self.send_lift(self.gap_position)
 
 
+	def check_opponents(self):
+		"""Check it all"""
+		if not self.online:return
+		for i in self.boss.master.players:
+			self.boss.master.players[i].run()
+
 	def check_topout(self):
 		"""Only gets checked before a lift, ends the game if there's a tetromino part found in the 40th line"""
 		for x in range(10):
@@ -1197,7 +1203,6 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 			str1+="("+str(x)+","+str(y)+"),"
 		str1+="]"
 		self.boss.master.update_server("#GAME#COORDS#"+str1)
-
 	def send_mino(self):
 		"""Format the string such that it can be evaluated later and forward it"""
 		if not self.online:return
@@ -1227,10 +1232,6 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 		if not self.online:return
 		self.boss.master.update_server("#GAME#STAT#[%d,%d,%d]"%(self.gameScore, self.levelScore, self.lineScore))
 	
-	def check_opponents(self):
-		if not self.online:return
-		for i in self.boss.master.players:
-			self.boss.master.players[i].run()
 
 	def send_attack(self, lines):
 		"""Format the string such that it can be evaluated later and forward it"""
@@ -1245,6 +1246,7 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 		if not self.online:return
 		self.boss.master.update_server("#GAME#WON#0")
 	def send_bonus(self, bonus):
+		"""Format the string such that it can be announced later and forward it"""
 		if not self.online:return
 		self.boss.master.update_server("#GAME#ANNOUNCE#%s"%bonus)
 		self.boss.master.chat.write("You had a "+bonus)
@@ -1286,7 +1288,7 @@ This system allows for equal distribution among the seven Tetriminos.
 		return ret
 
 	def queue_forward(self, mino, delete=True):
-		"Delete (optionally) the top tetromino, Move each Tetromino up by one in the que, and place the next to the end of queue\nqueue_forward(mino, delete=True)\nmino:Tetromino-type ref\ndelete: delete the top piece"
+		"""Delete (optionally) the top tetromino, Move each Tetromino up by one in the que, and place the next to the end of queue\nqueue_forward(mino, delete=True)\nmino:Tetromino-type ref\ndelete: delete the top piece"""
 		if delete:
 			for i in self.objects[0]:
 				self.queue_can.delete(i)
@@ -1309,18 +1311,8 @@ class GameOverException(Exception):
 
 
 if __name__ == '__main__':
-	
-	#help(__name__)
-
 	root=Tk()
 	fr=GameDashboard(root)
 	fr.grid(row=0, column=0)
-	#root.title("Tetrícia")
+	root.title("Tetrícia")
 	root.mainloop()
-
-
-#TODO
-#Soft drop smoothing
-#Levels
-
-#SEND START SIGNAL

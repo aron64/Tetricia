@@ -25,8 +25,8 @@ class Tetricia(Tk):
 
 		##Game difficulcity
 		self.level=1
-		
-
+		##The connection socket
+		self.conn=None
 		##Button status tracker boolean
 		self.ready=False
 		##~UwU~
@@ -102,9 +102,9 @@ class Tetricia(Tk):
 		"""Check if the game is over"""
 		ingame=0
 		for i in self.players:
-			if not self.players[i].over:
+			if not self.players[i].gameOver:
 				ingame+=1
-		
+				print(i, self.player)
 		#This player won
 		if (self.panel.ingame and ingame==0):
 			self.panel.gameThread.won()
@@ -121,7 +121,7 @@ class Tetricia(Tk):
 		self.playing=False
 		self.panel.startButton.config(state=NORMAL)
 		for i in self.players:
-			self.players[i].over=False
+			self.players[i].gameOver=False
 			self.players[i].ready=False
 
 
@@ -160,7 +160,7 @@ class Tetricia(Tk):
 	def drop_connection(self):
 		"""Set the server connection socket"""
 		self.panel.grid_forget()
-		del self.conn
+		self.conn=None
 		self.panel.startButton.config(state=DISABLED)
 		self.panel.online=False
 		for i in self.players:
@@ -171,7 +171,8 @@ class Tetricia(Tk):
 	def _destroy(self):
 		"""Destroy event handler"""
 		self.chat._delete_window()
-		self.panel._destroy()
+		if self.conn!=None:
+			self.panel._destroy()
 		self.after(200,self.destroy)
 
 	def opponent_control_test(self):
@@ -198,10 +199,5 @@ class Tetricia(Tk):
 		threading.Thread(target=self.opponent_control_test).start()
 
 
-
 if __name__ == '__main__':
-	# root=Tk()
-	# a=Tetricia(root,1)
-	# a.grid()
-	# root.mainloop()
 	Tetricia().mainloop()

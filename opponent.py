@@ -27,16 +27,10 @@ class OpponentDashboard(GameEngine,Frame):
 		#The hold canvas
 		self.hold_can = Canvas(self, width=6*blocksize, height=4*blocksize, bg=self.bg)
 
-		#Canvas of the next pieces
-		# self.queue_can = Canvas(self, width=6*blocksize, height=20*blocksize+5, bg=self.bg)
-		# self.queue_can.create_rectangle(0,0,7*blocksize,100, fill="cyan")
-		#self.bag=Bag(self.queue_can, blocksize)
-
 		#Widget placements
 		self.hold_can.grid(row=0, column=0,columnspan=2, padx=5, pady=5, sticky=N)
 		self.can.grid(row=0, column=2, pady=5, rowspan=5)
-		# self.queue_can.grid(row=0, column=3, rowspan=5, padx=5, pady=5, sticky = N)
-
+		
 		#Font
 		x=12
 		if self.master.max==2:
