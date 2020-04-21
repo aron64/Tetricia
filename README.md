@@ -16,7 +16,7 @@ Guidelines: https://www.dropbox.com/s/g55gwls0h2muqzn/tetris%20guideline%20docs%
    * Make sure your PORT is going to be accessible by the other players
    
 * Client
-   * Run gameobjects.py for Solo experience
+   * Run gameobjects.py for solo experience
    * Run main.py for multiplayer experience
       * Ensure you have set the correct ip:port address in the Connection Settings menu
       * type *!level n* to set the starting level for the next game
