@@ -33,6 +33,8 @@ class Tetricia(Tk):
 		##~UwU~
 		self.playing=False
 
+
+
 		#self.trial_start()
 
 	def esc(self, evt):

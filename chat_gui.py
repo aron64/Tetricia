@@ -25,18 +25,22 @@ class ChatGui(Frame):
         self.background="#FFFFFF"
         self.selectbackground='blue'
         self.selectforeground='white'
+        maxchar=50
         x=11
+        rows=10
         if self.master.winfo_screenheight()<1000:
             print(self.master.winfo_screenheight())
-            x=9
+            x=8
+            maxchar=35
+            rows=9
         self.font=font.Font(family='Comic Sans MS', size=x, weight='bold', slant='roman')
 
-        self.textbox =Text(self, width =50, height =10, foreground=self.foreground, background=self.background,
+        self.textbox =Text(self, width =maxchar, height =rows, foreground=self.foreground, background=self.background,
                              selectforeground=self.selectforeground, selectbackground=self.selectbackground,font=self.font, wrap=WORD)
-        self.textbox.grid(row=0,rowspan=1, column=0, pady=5, sticky=E)
+        self.textbox.grid(row=0,rowspan=1, column=0, sticky=E)
         self.scroll =ttk.Scrollbar(self, command =self.textbox.yview)
         self.textbox.configure(yscrollcommand =self.scroll.set)
-        self.scroll.grid(column=1, row=0, rowspan=1,  sticky=N+S+W, pady=5)
+        self.scroll.grid(column=1, row=0, rowspan=1,  sticky=N+S+W)
         #self.textbox=textbox(self, width=70, height=15, foreground=self.foreground, background=self.background, activestyle=NONE,
         #                     selectforeground=self.selectforeground, selectbackground=self.selectbackground, selectmode=EXTENDED)
         self.textbox.bind("<Button-3>", self.popup)
@@ -60,8 +64,8 @@ class ChatGui(Frame):
         self.help="""Right click in the chat to costumize.
 Left click on pictures to save or open them in default size."""
         self.message=StringVar()
-        self.e_out=Entry(self, width=49, textvariable=self.message,font=self.font, bd=3,highlightbackground=self.foreground, highlightcolor=self.selectbackground, highlightthickness=2)
-        self.e_out.grid(row=2, column=0, pady=5,sticky=E)
+        self.e_out=Entry(self, width=maxchar-1, textvariable=self.message,font=self.font, bd=3,highlightbackground=self.foreground, highlightcolor=self.selectbackground, highlightthickness=2)
+        self.e_out.grid(row=2, column=0,sticky=E)
         self.e_out.bind('<Return>', self.sendmsg)
 
         self.w_frame=Frame(self)
@@ -75,8 +79,8 @@ Left click on pictures to save or open them in default size."""
         self.b_settings.grid(row=0, column=2, padx=10, pady=2, sticky=N+W)
         self.b_disconnect.grid(row=1, column=2, padx=10, pady=2, sticky=N+E)
         self.b_connect.grid(row=1, column=2, padx=10, pady=2, sticky =N+W)
-        self.b_out.grid(row=2, column=2, padx=10, pady=5, sticky =N+W)
-        self.b_picout.grid(row=2, column=2,pady=5, padx=10, sticky=N+E)
+        self.b_out.grid(row=2, column=2, padx=10, sticky =N+W)
+        self.b_picout.grid(row=2, column=2, padx=10, sticky=N+E)
         self.b_help.grid(row=3, column=2, padx=10, sticky=N+W)
 
         self.license=Label(self.w_frame, text="©Áron L. Hertendi, 2018-2020")
@@ -85,9 +89,9 @@ Left click on pictures to save or open them in default size."""
         self.prog_lab_sv=StringVar(self)
         self.prog_iv=IntVar(self)
         self.prog_label=Label(self.w_frame, textvariable = self.prog_lab_sv)
-        self.prog_label.grid(row=4, column=2,sticky =N+W)
-        self.prog=ttk.Progressbar(self.w_frame, orient="horizontal", length=165, mode="determinate", variable=self.prog_iv)
-        self.prog.grid(row=5, column=2,sticky =N)
+        self.prog_label.grid(row=3, column=2,sticky =N+E)
+        self.prog=ttk.Progressbar(self.w_frame, orient="horizontal", length=200, mode="determinate", variable=self.prog_iv)
+        self.prog.grid(row=5, column=2, pady=3,sticky =N)
         self.w_frame.grid(row=0,column=2,rowspan=1, pady=5,sticky =N)
         #FONTDIRS = [os.path.join(os.environ['WINDIR'], 'Fonts')]
         #for x in FONTDIRS:
@@ -133,7 +137,10 @@ Left click on pictures to save or open them in default size."""
             self.write('Lekapcsolódott.')
         except Exception as e:
             pass
-        self.master.drop_connection()
+        try:
+            self.master.drop_connection()
+        except AttributeError:
+            pass
         self.connected=False
         self.b_settings.config(state=NORMAL)
         self.b_connect.config(state=NORMAL)
