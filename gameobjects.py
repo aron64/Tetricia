@@ -191,6 +191,7 @@ init(master, blocksize=30, level=1)
 		#self.master.protocol("WM_DELETE_WINDOW", self._destroy)
 		self.master.bind("<space>", self.button_space)
 		self.master.bind("c", self.button_c)
+		self.master.bind("<Shift_L>", self.button_c)
 
 		##Play button to start playing
 		self.startButton = ttk.Button(self, text="\nPLAY\n", command=self.start_new_game, width=int(0.85*blocksize))
@@ -482,8 +483,6 @@ class GameEngine(threading.Thread):
 			self.hold=True
 	def call_soft_drop(self, logical=True):
 		"""Set flag for a Soft Drop"""
-		if self.phase not in ("falling", "locking"):
-			return
 		self.soft_drop_flag=logical
 		return self.soft_drop_flag
 

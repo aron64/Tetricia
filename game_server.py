@@ -139,6 +139,7 @@ while True:
     try:
         connec, addr = mySocket.accept()
         # Received a connection, initializing new thread
+        print("HERE")
         name=connec.recv(1024).decode('UTF-8')
         if name in conn_Cli:
             name=name+'({0})'.format(addr[1])

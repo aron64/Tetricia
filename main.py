@@ -1,8 +1,8 @@
 from tkinter import *
+import tkinter.ttk as ttk
 import socket, sys, threading,time,struct, tkinter.colorchooser, os, getpass
 from tkinter import font,filedialog, messagebox
 from PIL import Image, ImageTk
-import tkinter.ttk as ttk
 from gameobjects import *
 from chat_gui import *
 from opponent import *
@@ -20,6 +20,7 @@ class Tetricia(Tk):
 		self.bind("<F11>", self.f11)
 		self.chat=ChatGui(self,'aronsv.ddns.net', '64164', socket.gethostname()+'\\'+getpass.getuser())
 		self.chat.grid(row=2,column=0, sticky="W")
+		#self.chat.config(width=500, height=1000)
 		self.players={}
 		self.title("Tetrícia")
 
