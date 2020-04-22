@@ -16,7 +16,7 @@ class ChatGui(Frame):
         self.data[2].set(name)
 
         self.master.title('Chat')
-        self.master.resizable(0,0)
+        #self.master.resizable(0,0)
         #self.master.protocol("WM_DELETE_WINDOW", self._delete_window)
         #self.master.attributes('-fullscreen', True)
 
@@ -25,14 +25,18 @@ class ChatGui(Frame):
         self.background="#FFFFFF"
         self.selectbackground='blue'
         self.selectforeground='white'
-        self.font=font.Font(family='Comic Sans MS', size=11, weight='bold', slant='roman')
+        x=11
+        if self.master.winfo_screenheight()<1000:
+            print(self.master.winfo_screenheight())
+            x=9
+        self.font=font.Font(family='Comic Sans MS', size=x, weight='bold', slant='roman')
 
         self.textbox =Text(self, width =50, height =10, foreground=self.foreground, background=self.background,
                              selectforeground=self.selectforeground, selectbackground=self.selectbackground,font=self.font, wrap=WORD)
-        self.textbox.grid(row=0,rowspan=100, column=0, pady=5, sticky=E)
+        self.textbox.grid(row=0,rowspan=1, column=0, pady=5, sticky=E)
         self.scroll =ttk.Scrollbar(self, command =self.textbox.yview)
         self.textbox.configure(yscrollcommand =self.scroll.set)
-        self.scroll.grid(column=1, row=0, rowspan=100,  sticky=N+S+W, pady=5)
+        self.scroll.grid(column=1, row=0, rowspan=1,  sticky=N+S+W, pady=5)
         #self.textbox=textbox(self, width=70, height=15, foreground=self.foreground, background=self.background, activestyle=NONE,
         #                     selectforeground=self.selectforeground, selectbackground=self.selectbackground, selectmode=EXTENDED)
         self.textbox.bind("<Button-3>", self.popup)
@@ -57,33 +61,34 @@ class ChatGui(Frame):
 Left click on pictures to save or open them in default size."""
         self.message=StringVar()
         self.e_out=Entry(self, width=49, textvariable=self.message,font=self.font, bd=3,highlightbackground=self.foreground, highlightcolor=self.selectbackground, highlightthickness=2)
-        self.e_out.grid(row=101, column=0, pady=5,sticky=E)
+        self.e_out.grid(row=2, column=0, pady=5,sticky=E)
         self.e_out.bind('<Return>', self.sendmsg)
 
-        self.b_settings=ttk.Button(self, text="Connection Settings", command=self.settings, state=NORMAL)
-        self.b_disconnect=ttk.Button(self, text="Disonnect", command=self.disconnect, state=DISABLED)
-        self.b_connect=ttk.Button(self, text="Connect", command=self.connect, state=NORMAL)
+        self.w_frame=Frame(self)
+        self.b_settings=ttk.Button(self.w_frame, text="Connection Settings", command=self.settings, state=NORMAL, width=27)
+        self.b_disconnect=ttk.Button(self.w_frame, text="Disonnect", command=self.disconnect, state=DISABLED)
+        self.b_connect=ttk.Button(self.w_frame, text="Connect", command=self.connect, state=NORMAL)
         self.b_out=ttk.Button(self, text="Send message", command=self.sendmsg, state=NORMAL)
         self.b_picout=ttk.Button(self, text="Send image", command=self.img_send, state=NORMAL)
-        self.b_help=ttk.Button(self, text="Help", command=lambda: messagebox.showinfo('Help', self.help), state=NORMAL)
+        self.b_help=ttk.Button(self.w_frame, text="Help", command=lambda: messagebox.showinfo('Help', self.help), state=NORMAL)
 
         self.b_settings.grid(row=0, column=2, padx=10, pady=2, sticky=N+W)
-        self.b_disconnect.grid(row=1, column=2, padx=10, pady=2, sticky=N+W)
-        self.b_connect.grid(row=2, column=2, padx=10, pady=2, sticky =N+W)
-        self.b_out.grid(row=101, column=2, padx=10, pady=5, sticky =N+W)
-        self.b_picout.grid(row=101, column=2,pady=5, padx=10, sticky=N+E)
-        self.b_help.grid(row=4, column=2,pady=5, padx=10, sticky=N+W)
+        self.b_disconnect.grid(row=1, column=2, padx=10, pady=2, sticky=N+E)
+        self.b_connect.grid(row=1, column=2, padx=10, pady=2, sticky =N+W)
+        self.b_out.grid(row=2, column=2, padx=10, pady=5, sticky =N+W)
+        self.b_picout.grid(row=2, column=2,pady=5, padx=10, sticky=N+E)
+        self.b_help.grid(row=3, column=2, padx=10, sticky=N+W)
 
-        self.license=Label(self, text="©Hertendi Áron Levente, 2018")
-        self.license.grid(row=3, column=2, padx=10, pady=5, sticky =N+W)
+        self.license=Label(self.w_frame, text="©Áron L. Hertendi, 2018-2020")
+        self.license.grid(row=2, column=2, padx=10, sticky =N+W)
 
         self.prog_lab_sv=StringVar(self)
         self.prog_iv=IntVar(self)
-        self.prog_label=Label(self, textvariable = self.prog_lab_sv)
-        self.prog_label.grid(row=60, column=2)
-        self.prog=ttk.Progressbar(self, orient="horizontal", length=165, mode="determinate", variable=self.prog_iv)
-        self.prog.grid(row=61, column=2)
-
+        self.prog_label=Label(self.w_frame, textvariable = self.prog_lab_sv)
+        self.prog_label.grid(row=4, column=2,sticky =N+W)
+        self.prog=ttk.Progressbar(self.w_frame, orient="horizontal", length=165, mode="determinate", variable=self.prog_iv)
+        self.prog.grid(row=5, column=2,sticky =N)
+        self.w_frame.grid(row=0,column=2,rowspan=1, pady=5,sticky =N)
         #FONTDIRS = [os.path.join(os.environ['WINDIR'], 'Fonts')]
         #for x in FONTDIRS:
         #self.write((os.environ['WINDIR'], 'Fonts'))
@@ -284,16 +289,18 @@ Left click on pictures to save or open them in default size."""
             entries[x].grid(row=x, column=1)
         b_confirm=ttk.Button(self.costumize, command= lambda :self.save(self.costumize, entry_svar), text="OK")
         b_confirm.grid(row=1, column=3, padx=10)
-        self.costumize.title('Beállítások')
+        self.costumize.title('Settings')
+        self.costumize.bind("<Return>", lambda evt:self.save(self.costumize, entry_svar))
         self.costumize.geometry("+%d+%d" % (self.master.winfo_rootx()+50,
                                   self.master.winfo_rooty()+50))
         self.costumize.protocol("WM_DELETE_WINDOW", self.set_destroyed)
         self.costumize.resizable(0,0)
+        entries[0].focus_set()
         self.costumize.transient(self.costumize.master)
     def set_destroyed(self):
         """Settings window closed without save"""
         self.costumize.destroy()
-        self.write('A beállítások nem módusltak.')
+        self.write('Settings have not been modified.')
     def save(self,window, settings):
         """Settings window closed with save"""
         window.destroy()
