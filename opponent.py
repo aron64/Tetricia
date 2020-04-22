@@ -88,7 +88,7 @@ class OpponentDashboard(GameEngine,Frame):
 		self.l_lines.config(text="0")
 
 	def won(self):
-		"""This function clears the players stuff"""
+		"""When someone won the game, we reset everything"""
 		self.master.reset()
 
 	def abandoned(self):
