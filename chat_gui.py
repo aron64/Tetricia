@@ -153,10 +153,15 @@ Left click on pictures to save or open them in default size."""
             self.write("Couldn't reach server.")
             self.disconnect()
             return
-        self.write("Successful connection.")
-        self.master.set_connection(self.connection)
+        except Exception as e:
+            print(e)
         self.connection.send(bytes(self.data[2].get(), 'utf-8'))
         asd=self.connection.recv(1024).decode('utf-8')
+        if asd=='no':
+            self.write("Connection rejected. Server is already full.")
+            return
+        self.master.set_connection(self.connection)
+        self.write("Successful connection.")
         print(asd)
         self.data[2].set(asd)
         self.connected=True

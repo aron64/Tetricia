@@ -49,7 +49,7 @@ class ThreadClient(threading.Thread):
                     if client!=name:
                         sendmsg(conn_Cli[name],bytes("SERVER>>> "+client+' online.', 'utf-8'))
                         x=False
-                        time.sleep(0.5)
+                        #time.sleep(0.5)
                 if x: sendmsg(conn_Cli[name],bytes("SERVER>>> Currently you are the only one online", 'utf-8'))
                 sendmsg(conn_Cli[name],bytes("#LEVEL#%s"%STARTLEVEL, 'utf-8'))
                 locking.release()
@@ -139,10 +139,12 @@ while True:
     try:
         connec, addr = mySocket.accept()
         # Received a connection, initializing new thread
-        print("HERE")
         name=connec.recv(1024).decode('UTF-8')
         if name in conn_Cli:
             name=name+'({0})'.format(addr[1])
+        while len(conn_Cli)==MAXUSER:
+            connec.send(bytes('no', 'utf-8'))
+            continue
         th= ThreadClient(connec,name)
         while not glob_ready:
             continue
