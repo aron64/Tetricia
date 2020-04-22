@@ -107,7 +107,7 @@ class Tetricia(Tk):
 		for i in self.players:
 			if not self.players[i].gameOver:
 				ingame+=1
-				print(i, self.player)
+				
 		#This player won
 		if (self.panel.ingame and ingame==0):
 			self.panel.gameThread.won()

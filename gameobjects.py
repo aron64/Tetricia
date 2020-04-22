@@ -22,6 +22,7 @@ from random import shuffle, randrange
 import threading, time
 from pynput.keyboard import Key, Listener
 from chat_gui import *
+
 class I:
 	"""I - Tetromino behaviour description"""
 	def generate():
@@ -697,7 +698,10 @@ to help the player manipulate it above the Skyline.
 			self.eliminate_phase()
 			self.send_won()
 			self.boss.ingame=False
-			messagebox.showinfo("You won!","Score: %s"%self.gameScore)
+			if self.online:
+				self.boss.master.chat.write("You won!\nScore: %s"%self.gameScore)
+			else:
+				messagebox.showinfo("You won!","Score: %s"%self.gameScore)
 			raise GameOverException()
 		if self.newAttacks>0:
 			for x in range(self.newAttacks):
@@ -1149,7 +1153,10 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 	def game_over(self):
 		self.boss.ingame=False
 		self.send_over()
-		messagebox.showinfo("Game over!","Score: %s"%self.gameScore)
+		if self.online:
+			self.boss.master.chat.write("Game over!\nYour score: %s"%self.gameScore)
+		else:
+			messagebox.showinfo("Game over!","Score: %s"%self.gameScore)
 		raise GameOverException()
 
 	def receive_attacks(self,amount):
