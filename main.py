@@ -1,3 +1,4 @@
+import os
 from tkinter import *
 import tkinter.ttk as ttk
 import socket, sys, threading,time,struct, tkinter.colorchooser, os, getpass
@@ -6,12 +7,24 @@ from PIL import Image, ImageTk
 from gameobjects import *
 from chat_gui import *
 from opponent import *
+from pygame import mixer # Load the required library
+
 class Tetricia(Tk):
 	"""The main client application"""
 	def __init__(self):
 		Tk.__init__(self)
+		mixer.pre_init(44100, 16, 2, 4096) 
+		mixer.init()
 		default_font = font.nametofont("TkDefaultFont")
 		default_font.config(family='Comic Sans MS')
+		self.sounds={"lock":mixer.Sound("effects/lock.ogg"),
+					 "rotate":mixer.Sound("effects/rotate.ogg"),
+					 "move":mixer.Sound("effects/move.ogg"),
+					 "clear":mixer.Sound("effects/lineclear.ogg"),
+					 "over":mixer.Sound("music/gameover.ogg"),
+					 "bg":mixer.Sound("music/bg.OGG"),
+					 "bg1":mixer.Sound("music/bg1.OGG")
+		}
 		self.screenw=self.winfo_screenwidth()
 		self.screenh=self.winfo_screenheight()
 
@@ -50,7 +63,7 @@ class Tetricia(Tk):
 		self.max=n
 		if n==2:
 			k=18
-			self.panel=GameDashboard(self, blocksize=self.screenh/20.5)
+			self.panel=GameDashboard(self, mixer,self.sounds,blocksize=self.screenh/20.5)
 			self.panel.grid(row=0,rowspan=3 ,column=0,sticky="SW")
 			self.chat.grid(row=2,column=1, sticky="SE")
 			self.yscale=0.98
@@ -107,7 +120,7 @@ class Tetricia(Tk):
 		for i in self.players:
 			if not self.players[i].gameOver:
 				ingame+=1
-				
+
 		#This player won
 		if (self.panel.ingame and ingame==0):
 			self.panel.gameThread.won()
@@ -203,4 +216,5 @@ class Tetricia(Tk):
 
 
 if __name__ == '__main__':
+	os.system('cls')
 	Tetricia().mainloop()

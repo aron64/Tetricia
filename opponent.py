@@ -11,7 +11,7 @@ class OpponentDashboard(GameEngine,Frame):
 		self.master=master
 		self.bg="black"
 		self.blocksize=blocksize
-
+		self.mixer=False
 		##The computers ID
 		self._name=name
 

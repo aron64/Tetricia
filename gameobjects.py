@@ -124,13 +124,14 @@ init(master, blocksize=30, level=1)
     level is the initial game difficulcity (speed and scoring multiplier)
 
 """
-	def __init__(self, master, blocksize=30, level=1, ):
+	def __init__(self, master, mixer,sounds, blocksize=30, level=1):
 		Frame.__init__(self)
 		##Blocksize in pixels
 		self.blocksize = blocksize
-
+		self.mixer=mixer
 		##The level to start the game on
 		self.level=level
+		self.sounds=sounds
 
 		##Different lock object for gameplay and network interferences
 		self.netLock = threading.Lock()
@@ -192,12 +193,54 @@ init(master, blocksize=30, level=1)
 		#self.master.protocol("WM_DELETE_WINDOW", self._destroy)
 		self.master.bind("<space>", self.button_space)
 		self.master.bind("c", self.button_c)
-		self.master.bind("<Shift_L>", self.button_c)
+		self.master.bind("<Shift_L>", self.button_shift_l)
 
+		#Sound
+
+
+		self.bgvar=IntVar()
+		self.bgvar.set(1)
+		self.chmusic=ttk.Checkbutton(self,text="Music", command=self.swmusic,variable=self.bgvar, state=ACTIVE)
+		self.chmusic.grid(row=1, column=0)
+		self.bgmusic=StringVar()
+		self.bgmusic.set("bg1")
+		Label(self,text="Music volume", font=self.font).grid(row=2, column=0,sticky="S")
+		self.vol = ttk.Scale(self, from_=0, to=100, orient=HORIZONTAL,command=self.set_vol)
+		self.vol.grid(row=3,column=0,sticky=N)
+		self.vol.set(100)
+		self.choosemusic=ttk.Button(self, text="Chose",command=self.choose_music)
+		self.choosemusic.grid(row=2, column=0,sticky=N)
 		##Play button to start playing
 		self.startButton = ttk.Button(self, text="\nPLAY\n", command=self.start_new_game, width=int(0.85*blocksize))
 		self.startButton.grid(row=0, column=0,padx=8, sticky="S")
+	
+	def set_vol(self,evt):
+		"""Set the volume of all music"""
+		self.mixer.Channel(0).set_volume(float(evt)/100)
+	def choose_music(self):
+		"""Toplevel window to costumize connection settings"""
+		self.can.focus_set()
+		self.costumize=Toplevel(self)
+		self.costumize.grab_set()
+		b_confirm=ttk.Button(self.costumize, command= lambda :self.costumize.destroy(), text="OK")
+		b_confirm.grid(row=0, column=3, rowspan=2,padx=10)
 
+		Radiobutton(self.costumize, text="Ievan Polkka", variable=self.bgmusic, value="bg1").grid(row=0)
+		Radiobutton(self.costumize, text="Ao no kanata", variable=self.bgmusic, value="bg").grid(row=1)
+		self.costumize.title('Settings')
+		self.costumize.geometry("+%d+%d" % (self.master.winfo_rootx()+50,
+											self.master.winfo_rooty()+50))
+		self.costumize.resizable(0,0)
+		self.costumize.transient(self.costumize.master)
+
+	def swmusic(self):
+		"""Toggle the background/endgame music"""
+		self.can.focus_set()
+		if 'selected' in self.chmusic.state() and self.ingame:
+			self.mixer.Channel(0).play(self.sounds[self.bgmusic.get()])
+		else:
+			self.mixer.Channel(0).stop()
+			
 	def _destroy(self):
 		"""Window closed event handler"""
 		if self.ingame:
@@ -214,8 +257,9 @@ init(master, blocksize=30, level=1)
 			self.queue_can.create_rectangle(0,0,7*self.blocksize,self.blocksize*3.33, fill="cyan")
 			self.hold_can.delete(ALL)
 			self.ingame=True
+			self.swmusic()
 			self.bag.start()
-			self.gameThread=GameEngine(self, self.can, self.blocksize, self.level,self.bag, self.online)
+			self.gameThread=GameEngine(self, self.can, self.blocksize, self.level,self.bag, self.mixer,self.sounds,self.online)
 			self.gameThread.start()
 
 	def button_space(self, event):
@@ -224,6 +268,10 @@ init(master, blocksize=30, level=1)
 			self.gameThread.call_hard_drop()
 	def button_c(self, event):
 		"""keyboard.c Event handler"""
+		if self.ingame and not self.paused:
+			self.gameThread.call_hold()
+	def button_shift_l(self, event):
+		"""keyboard.l_shift Event handler"""
 		if self.ingame and not self.paused:
 			self.gameThread.call_hold()
 
@@ -244,9 +292,11 @@ init(master, blocksize=30, level=1)
 		
 class GameEngine(threading.Thread):
 	"""The main gameplay's Thread"""
-	def __init__(self, boss, can, blocksize, level,bag, online=False):
+	def __init__(self, boss, can, blocksize, level,bag, mixer,sounds,online=False):
 		threading.Thread.__init__(self)
 		self.setDaemon(True)
+		self.mixer=mixer
+		self.sounds=sounds
 
 		self.boss = boss
 		self.can = can
@@ -396,6 +446,7 @@ class GameEngine(threading.Thread):
 				self.ctrl_l_released=False
 				self.call_rotate_ccw()
 			elif key==Key.down:
+				self.mixer.Channel(1).play(self.sounds["move"])
 				if not self.call_soft_drop():
 					self.call_soft_drop()
 			self.boss.gameLock.release()
@@ -472,7 +523,6 @@ class GameEngine(threading.Thread):
 				while self.boss.master.playing:
 					self.check_opponents()
 				print("Exiting thread")
-
 		except Exception as e:
 			print(e)
 
@@ -571,6 +621,8 @@ class GameEngine(threading.Thread):
 		if new_coords==None:
 			return False
 		#Rotation succeeded
+		if self.mixer:
+			self.mixer.Channel(2).play(self.sounds["rotate"])
 		self.last_action=time.time()
 		self.active['rot']=dest
 
@@ -585,7 +637,6 @@ class GameEngine(threading.Thread):
 		for i in range(4):
 			x,y=self.active['coords'][i]
 			self.can.coords(self.active['objects'][i], 2+(bs*x),-(y-19)*bs,2+bs+(bs*x), -(y-20)*bs)
-
 		#Adjust ghost
 		self.ghost_adjust()
 		return True
@@ -642,6 +693,8 @@ class GameEngine(threading.Thread):
 		#Visual
 		for block in self.active['objects']:
 			self.can.move(block, self.blocksize, 0)
+		if self.mixer:
+			self.mixer.Channel(1).play(self.sounds["move"])
 		self.ghost_adjust()
 		return True
 
@@ -667,6 +720,8 @@ class GameEngine(threading.Thread):
 		#Visual
 		for block in self.active['objects']:
 			self.can.move(block, -self.blocksize, 0)
+		if self.mixer:
+			self.mixer.Channel(1).play(self.sounds["move"])
 		self.ghost_adjust()
 		return True
 
@@ -959,7 +1014,8 @@ to help the player manipulate it above the Skyline.
 			self.OGM[x][y]=self.active['objects'][self.active['coords'].index((x,y))]
 		for x in self.ghost:
 			self.can.delete(x)
-
+		if self.mixer:
+			self.mixer.Channel(4).play(self.sounds["lock"])
 		self.send_lock()
 
 	def pattern_phase(self):
@@ -1105,6 +1161,8 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 				elim[j]-=1
 		#threading.Thread(target=self.clear_line_animation).start()
 		#time.sleep(0.0001)
+		if self.mixer:
+			self.mixer.Channel(3).play(self.sounds["clear"])
 		self.clear_line_animation()
 
 	def clear_line_animation(self):
@@ -1153,6 +1211,14 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 	def game_over(self):
 		self.boss.ingame=False
 		self.send_over()
+		if self.mixer:
+			mixer.Channel(0).play(self.sounds["over"], fade_ms=8000)
+		#self.eliminate=[x for x in range(40)]
+		self.eliminate=[y for y in range(21)]
+		self.clear_line_animation()
+		self.eliminate=[y for y in range(20)]
+		self.clear_line_animation()
+		time.sleep(4)
 		if self.online:
 			self.boss.master.chat.write("Game over!\nYour score: %s"%self.gameScore)
 		else:
@@ -1317,8 +1383,21 @@ class GameOverException(Exception):
 
 
 if __name__ == '__main__':
+	from pygame import mixer # Load the required library
+	import os
+	os.system('cls')
 	root=Tk()
-	fr=GameDashboard(root)
+	mixer.pre_init(44100, 16, 2, 4096) 
+	mixer.init()
+	sounds={"lock":mixer.Sound("effects/lock.ogg"),
+					 "rotate":mixer.Sound("effects/rotate.ogg"),
+					 "move":mixer.Sound("effects/move.ogg"),
+					 "clear":mixer.Sound("effects/lineclear.ogg"),
+					 "over":mixer.Sound("music/gameover.ogg"),
+					 "bg":mixer.Sound("music/bg.OGG"),
+					 "bg1":mixer.Sound("music/bg1.OGG")
+		}
+	fr=GameDashboard(root, mixer=mixer, sounds=sounds)
 	fr.grid(row=0, column=0)
 	root.title("Tetrícia")
 	root.mainloop()
