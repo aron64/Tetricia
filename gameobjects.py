@@ -1217,8 +1217,22 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 		if self.mixer:
 			self.mixer.Channel(0).play(self.sounds["over"], fade_ms=8000)
 		#self.eliminate=[x for x in range(40)]
+		coords=[[(0,38),(0,37),(0,36),(1,39),(2,39),(3,39),(2,37),(3,37),(3,36),(1,35),(2,35),(3,35)],
+				[(6,35),(6,36),(6,37),(6,38),(7,37),(7,39),(8,37),(8,39),(9,35),(9,36),(9,37),(9,38),],
+				[(0,30),(0,31),(0,32),(0,33),(0,34),(1,33), (2,32),(3,33),(4,30),(4,31),(4,32),(4,33),(4,34),],
+				[(6,33),(6,32),(6,31),(7,34),(7,32),(7,30),(8,34),(8,32),(8,30),(9,34),(9,30),],
+				[(0,28),(0,27),(0,26),(1,29),(2,29),(3,29),(4,28),(4,27),(4,26),(1,25),(2,25),(3,25),],
+				[(6,28),(6,27),(6,26),(9,28),(9,27),(9,26),(7,25),(8,25),],
+				[(0,23),(0,22),(0,21),(1,24),(2,24),(3,24),(1,22),(2,22),(1,20),(2,20),(3,20),],
+				[(6,24),(6,23),(6,22),(6,21),(6,20),(7,24),(8,24),(9,24),(9,23),(7,22),(8,22),(9,22),(8,21),(9,20)]
+		]
 		self.eliminate=[y for y in range(21)]
 		self.clear_line_animation()
+		bs=self.blocksize
+		clr=["red", "red", "orange", "orange", "purple", "purple", "blue", "blue"]
+		for i in range(len(coords)):
+			for x,y in coords[i]:
+				self.OGM[x][y]=self.can.create_rectangle(2+(bs*x),-(y-19)*bs,2+bs+(bs*x), -(y-20)*bs, fill=clr[i])
 		self.eliminate=[y for y in range(20)]
 		self.clear_line_animation()
 		time.sleep(4)
