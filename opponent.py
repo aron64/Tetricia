@@ -48,9 +48,9 @@ class OpponentDashboard(GameEngine,Frame):
 		self.l_levels=Label(self.label_frame,text="%d"%self.base_level,font=self.font)
 		self.l_lines=Label(self.label_frame,text="0",font=self.font)
 
-		self.l_points.grid(row=1, column=1, sticky="SW")
-		self.l_levels.grid(row=2, column=1, sticky="SW")
-		self.l_lines.grid(row=3, column=1, sticky="SW")
+		self.l_points.grid(row=1, column=0, sticky="SW")
+		self.l_levels.grid(row=2, column=0, sticky="SW")
+		self.l_lines.grid(row=3, column=0, sticky="SW")
 
 		self.GM = [[0]*40 for x in range(10)]
 		self.OGM = [[0]*40 for x in range(10)]

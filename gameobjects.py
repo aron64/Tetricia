@@ -163,19 +163,19 @@ init(master, blocksize=30, level=1)
 
 		#Widget placements
 		self.hold_can.grid(row=0, column=0,columnspan=2, padx=5, pady=5, sticky=N)
-		self.can.grid(row=0, column=2, pady=5, rowspan=5)
-		self.queue_can.grid(row=0, column=3, rowspan=5, padx=5, pady=5, sticky = N)
+		self.can.grid(row=0, column=2, pady=5, rowspan=9)
+		self.queue_can.grid(row=0, column=3, rowspan=9, padx=5, pady=5, sticky = N)
 
 		#Font
 		self.font=font.Font(family='Comic Sans MS', size=12, weight='bold', slant='roman')
 
 		##Frame containing our labels
 		self.label_frame=Frame(self)
-		self.label_frame.grid(row=4, column=0)
+		self.label_frame.grid(row=8, column=0)
 		
-		Label(self.label_frame,text="Incoming Lines: \n\n",font=self.font).grid(row=0, column=0, sticky="NW")
+		Label(self.label_frame,text="Incoming Lines: \n\n",font=self.font).grid(row=0, column=0, sticky="SW")
 		self.l_attacks=Label(self.label_frame,text="0",font=self.font, fg="red")
-		self.l_attacks.grid(row=0, column=1, sticky="NW")
+		self.l_attacks.grid(row=0, column=1, sticky="SW")
 
 		Label(self.label_frame,text="Points: ",font=self.font).grid(row=3, column=0, sticky="SW")
 		Label(self.label_frame,text="Level: ",font=self.font).grid(row=4, column=0, sticky="SW")
@@ -201,7 +201,7 @@ init(master, blocksize=30, level=1)
 		self.bgvar=IntVar()
 		self.bgvar.set(1)
 		self.chmusic=ttk.Checkbutton(self,text="Music", command=self.swmusic,variable=self.bgvar, state=ACTIVE)
-		self.chmusic.grid(row=1, column=0)
+		self.chmusic.grid(row=2, column=0,padx=10,sticky="S")
 		self.bgmusic=StringVar()
 		try:
 			with open("music.prefs", 'r') as f:
@@ -210,19 +210,29 @@ init(master, blocksize=30, level=1)
 		except:
 			self.bgmusic.set("bg3")
 			with open("music.prefs", 'w') as f:self.bgmusic.get()
-		Label(self,text="Music volume", font=self.font).grid(row=2, column=0,sticky="S")
+		Label(self,text="Music volume", font=self.font).grid(row=3, column=0,sticky="N")
+		Label(self,text="Effects volume", font=self.font).grid(row=6, column=0,sticky="S")
 		self.vol = ttk.Scale(self, from_=0, to=100, orient=HORIZONTAL,command=self.set_vol)
-		self.vol.grid(row=3,column=0,sticky=N)
+		self.vol_effects = ttk.Scale(self, from_=0, to=100, orient=HORIZONTAL,command=self.set_vol_effects)
+		self.vol.grid(row=4,column=0,sticky=N)
+		self.vol_effects.grid(row=7,column=0,sticky=N)
 		self.vol.set(100)
-		self.choosemusic=ttk.Button(self, text="Chose",command=self.choose_music)
-		self.choosemusic.grid(row=2, column=0,sticky=N)
+		self.vol_effects.set(100)
+		self.choosemusic=ttk.Button(self, text="Choose Music",command=self.choose_music)
+		self.choosemusic.grid(row=5, column=0,sticky="N")
 		##Play button to start playing
 		self.startButton = ttk.Button(self, text="\nPLAY\n", command=self.start_new_game, width=int(0.85*blocksize))
-		self.startButton.grid(row=0, column=0,padx=8, sticky="S")
+		self.startButton.grid(row=1, column=0,padx=8, sticky="N")
 	
 	def set_vol(self,evt):
 		"""Set the volume of all music"""
 		self.mixer.Channel(0).set_volume(float(evt)/100)
+	def set_vol_effects(self,evt):
+		"""Set the volume of all music"""
+		self.mixer.Channel(1).set_volume(float(evt)/100)
+		self.mixer.Channel(2).set_volume(float(evt)/100)
+		self.mixer.Channel(3).set_volume(float(evt)/100)
+		self.mixer.Channel(4).set_volume(float(evt)/100)
 	def choose_music(self):
 		"""Toplevel window to costumize connection settings"""
 		self.can.focus_set()

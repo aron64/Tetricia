@@ -36,6 +36,9 @@ class ThreadClient(threading.Thread):
                         if curr==chr(0):break
                         msgClient+=curr
                 print(msgClient)
+            except ConnectionResetError:
+                del conn_Cli[name]
+                return
             except Exception as e:
                 print(e)
                 print(msgClient)
