@@ -6,7 +6,8 @@ by Áron Levente Hertendi
     * tkinter, ttk, pip
     
  *run install_packages.py to obtain the following packages:*
-
+ *it needs pywin32 tho...*
+ 
     * pynput - pip install pynput
     * PIL - pip install pillow
     * pygame - pip install pygame
