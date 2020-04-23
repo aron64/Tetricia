@@ -206,6 +206,7 @@ init(master, blocksize=30, level=1)
 		try:
 			with open("music.prefs", 'r') as f:
 				self.bgmusic.set(f.read())
+				assert self.bgmusic.get() in self.sounds 
 		except:
 			self.bgmusic.set("bg3")
 			with open("music.prefs", 'w') as f:self.bgmusic.get()

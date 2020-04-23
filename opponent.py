@@ -34,7 +34,7 @@ class OpponentDashboard(GameEngine,Frame):
 		#Font
 		x=12
 		if self.master.max==2:
-			x=19
+			x=12
 		self.font=font.Font(family='Comic Sans MS', size=x, weight='bold', slant='roman')
 		#Labels:
 		self.label_name=Label(self,text=name,font=self.font)

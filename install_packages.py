@@ -9,7 +9,6 @@
 # Updated for python 3
 
 import sys, os, traceback, types
-
 def isUserAdmin():
 
     if os.name == 'nt':

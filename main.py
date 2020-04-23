@@ -51,7 +51,7 @@ class Tetricia(Tk):
 
 
 
-		self.trial_start()
+		#self.trial_start()
 
 	def esc(self, evt):
 		"""Escape fullscreen"""

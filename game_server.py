@@ -25,18 +25,17 @@ class ThreadClient(threading.Thread):
         #Communication with client
         name= self.getName()        # All threads have an ID
         while True:
-            start=self.conn.recv(1).decode('UTF-8')
-            if start!=chr(0):
-                print("start:",start)
-            else:
-                msgClient=''
-                while True:
-                    curr=self.conn.recv(1).decode('UTF-8')
-                    if curr==chr(0):break
-                    msgClient+=curr
             try:
+                start=self.conn.recv(1).decode('UTF-8')
+                if start!=chr(0):
+                    print("start:",start)
+                else:
+                    msgClient=''
+                    while True:
+                        curr=self.conn.recv(1).decode('UTF-8')
+                        if curr==chr(0):break
+                        msgClient+=curr
                 print(msgClient)
-                #msgClient=msgClient.decode('UTF-8')
             except Exception as e:
                 print(e)
                 print(msgClient)
