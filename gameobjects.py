@@ -1121,13 +1121,13 @@ This phase takes up no apparent game time.
 			else:
 				self.send_bonus(bonus+"!")
 				self.B2B=True
-		elif bonus not in ("Mini T-Spin", "T-Spin"):
+		elif bonus in ("Single", "Double", "Triple"):
 			self.B2B=False
 
 		points=0
 		attack=0
 		if len(bonus)>0:
-			points=self.multiplier[self.bonuses.index(bonus)]
+			points=self.multiplier[self.bonuses.index(bonus)]*self.levelScore
 			attack=self.attacks[self.bonuses.index(bonus)]
 		if apply_b2b:
 			points*=1.5
