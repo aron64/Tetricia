@@ -1,14 +1,16 @@
 # Tetricia
-Tetris with multiplayer mode
-
-Guidelines: https://www.dropbox.com/s/g55gwls0h2muqzn/tetris%20guideline%20docs%202009.zip?dl=0
+by Áron Levente Hertendi
 
 # Software Requirements
 * Python 3.5+
-    * tkinter, ttk
+    * tkinter, ttk, pip
+    
+ *run install_packages.py to obtain the following packages:*
+
     * pynput - pip install pynput
     * PIL - pip install pillow
-* Tested on Windows 7
+    * pygame - pip install pygame
+* Tested on Windows 7, 8.1, 10
 
 # Usage
 * Server
@@ -20,7 +22,7 @@ Guidelines: https://www.dropbox.com/s/g55gwls0h2muqzn/tetris%20guideline%20docs%
    * Run main.py for multiplayer experience
       * Ensure you have set the correct ip:port address in the Connection Settings menu
       * type *!level n* to set the starting level for the next game
-      * type *help.get* to find out about stuff
+      * type *help.get* or press the Help button to find out about stuff
 
 * Basic Controls
    * Arrow Left: Move left
