@@ -203,7 +203,12 @@ init(master, blocksize=30, level=1)
 		self.chmusic=ttk.Checkbutton(self,text="Music", command=self.swmusic,variable=self.bgvar, state=ACTIVE)
 		self.chmusic.grid(row=1, column=0)
 		self.bgmusic=StringVar()
-		self.bgmusic.set("bg3")
+		try:
+			with open("music.prefs", 'r') as f:
+				self.bgmusic.set(f.read())
+		except:
+			self.bgmusic.set("bg3")
+			with open("music.prefs", 'w') as f:self.bgmusic.get()
 		Label(self,text="Music volume", font=self.font).grid(row=2, column=0,sticky="S")
 		self.vol = ttk.Scale(self, from_=0, to=100, orient=HORIZONTAL,command=self.set_vol)
 		self.vol.grid(row=3,column=0,sticky=N)
@@ -241,6 +246,8 @@ init(master, blocksize=30, level=1)
 		"""Called upon closing the music selecting dialog"""
 		self.costumize.destroy()
 		self.swmusic()
+		with open("music.prefs", 'w') as f:
+			f.write(self.bgmusic.get())
 
 	def swmusic(self):
 		"""Toggle the background/endgame music"""
