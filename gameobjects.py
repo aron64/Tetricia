@@ -203,7 +203,7 @@ init(master, blocksize=30, level=1)
 		self.chmusic=ttk.Checkbutton(self,text="Music", command=self.swmusic,variable=self.bgvar, state=ACTIVE)
 		self.chmusic.grid(row=1, column=0)
 		self.bgmusic=StringVar()
-		self.bgmusic.set("bg2")
+		self.bgmusic.set("bg3")
 		Label(self,text="Music volume", font=self.font).grid(row=2, column=0,sticky="S")
 		self.vol = ttk.Scale(self, from_=0, to=100, orient=HORIZONTAL,command=self.set_vol)
 		self.vol.grid(row=3,column=0,sticky=N)
@@ -226,9 +226,10 @@ init(master, blocksize=30, level=1)
 		b_confirm.grid(row=0, column=3, rowspan=2,padx=10)
 
 		Radiobutton(self.costumize, text="Ievan Polkka", variable=self.bgmusic, value="bg1").grid(row=0)
-		Radiobutton(self.costumize, text="Ao no kanata", variable=self.bgmusic, value="bg").grid(row=1)
 		Radiobutton(self.costumize, text="Коробейники", variable=self.bgmusic, value="bg2").grid(row=2)
 		Radiobutton(self.costumize, text="Коробейники piano", variable=self.bgmusic, value="bg3").grid(row=3)
+		Radiobutton(self.costumize, text="Platinum Disco", variable=self.bgmusic, value="bg4").grid(row=4)
+		Radiobutton(self.costumize, text="Ao no kanata", variable=self.bgmusic, value="bg").grid(row=5)
 		self.costumize.title('Music settings')
 		self.costumize.geometry("+%d+%d" % (self.master.winfo_rootx()+50,
 											self.master.winfo_rooty()+50))
@@ -1399,7 +1400,8 @@ if __name__ == '__main__':
 					 "bg":mixer.Sound("music/bg.OGG"),
 					 "bg1":mixer.Sound("music/bg1.OGG"),
 					 "bg2":mixer.Sound("music/bg2.OGG"),
-					 "bg3":mixer.Sound("music/bg3.OGG")
+					 "bg3":mixer.Sound("music/bg3.OGG"),
+					 "bg4":mixer.Sound("music/bg4.OGG")
 		}
 	fr=GameDashboard(root, mixer=mixer, sounds=sounds)
 	fr.grid(row=0, column=0)

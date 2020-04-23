@@ -25,7 +25,8 @@ class Tetricia(Tk):
 					 "bg":mixer.Sound("music/bg.OGG"),
 					 "bg1":mixer.Sound("music/bg1.OGG"),
 					 "bg2":mixer.Sound("music/bg2.OGG"),
-					 "bg3":mixer.Sound("music/bg3.OGG")
+					 "bg3":mixer.Sound("music/bg3.OGG"),
+					 "bg4":mixer.Sound("music/bg4.OGG")
 		}
 		self.screenw=self.winfo_screenwidth()
 		self.screenh=self.winfo_screenheight()
