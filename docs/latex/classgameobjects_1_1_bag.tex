@@ -1,0 +1,73 @@
+\hypertarget{classgameobjects_1_1_bag}{}\doxysection{gameobjects.\+Bag Class Reference}
+\label{classgameobjects_1_1_bag}\index{gameobjects.Bag@{gameobjects.Bag}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgameobjects_1_1_bag_a72db2493c45bb5e901f48d95bbc669b8}\label{classgameobjects_1_1_bag_a72db2493c45bb5e901f48d95bbc669b8}} 
+def {\bfseries \+\_\+\+\_\+init\+\_\+\+\_\+} (self, queue\+\_\+can, blocksize)
+\item 
+def \mbox{\hyperlink{classgameobjects_1_1_bag_aa87b862e2eca7e3a8d718dd4e2822206}{start}} (self)
+\item 
+def \mbox{\hyperlink{classgameobjects_1_1_bag_a3cda08a8613f6689e926b1724a480c05}{next}} (self)
+\item 
+def \mbox{\hyperlink{classgameobjects_1_1_bag_a1359853aaf0c7261729e04309b4e2771}{queue\+\_\+forward}} (self, mino, delete=True)
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgameobjects_1_1_bag_a9d0258eb1891e9c48e1e82abb71d5715}\label{classgameobjects_1_1_bag_a9d0258eb1891e9c48e1e82abb71d5715}} 
+{\bfseries minos}
+\item 
+\mbox{\Hypertarget{classgameobjects_1_1_bag_ac5f0c2948c7dae5d8d5122380dc57646}\label{classgameobjects_1_1_bag_ac5f0c2948c7dae5d8d5122380dc57646}} 
+{\bfseries queue\+\_\+can}
+\item 
+\mbox{\Hypertarget{classgameobjects_1_1_bag_a8447e92d9468168c88bbdb4d8501f7c4}\label{classgameobjects_1_1_bag_a8447e92d9468168c88bbdb4d8501f7c4}} 
+{\bfseries next\+\_\+queue}
+\item 
+\mbox{\Hypertarget{classgameobjects_1_1_bag_adf2e1864f15fae3bd2fc75f8f48ec8ad}\label{classgameobjects_1_1_bag_adf2e1864f15fae3bd2fc75f8f48ec8ad}} 
+{\bfseries bag}
+\item 
+\mbox{\Hypertarget{classgameobjects_1_1_bag_a940afca14236de1e9677a175c308d910}\label{classgameobjects_1_1_bag_a940afca14236de1e9677a175c308d910}} 
+\mbox{\hyperlink{classgameobjects_1_1_bag_a940afca14236de1e9677a175c308d910}{objects}}
+\begin{DoxyCompactList}\small\item\em tkinter graphical objects \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgameobjects_1_1_bag_ad8f18e2662589681c2bc7aca1eb0a9b3}\label{classgameobjects_1_1_bag_ad8f18e2662589681c2bc7aca1eb0a9b3}} 
+\mbox{\hyperlink{classgameobjects_1_1_bag_ad8f18e2662589681c2bc7aca1eb0a9b3}{orig\+\_\+box}}
+\begin{DoxyCompactList}\small\item\em Original blocksize. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgameobjects_1_1_bag_acc976d976bf22b42941827e1ab4ded6f}\label{classgameobjects_1_1_bag_acc976d976bf22b42941827e1ab4ded6f}} 
+{\bfseries blocksize}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\begin{DoxyVerb}Tetris uses a “bag” system to determine the sequence of Tetriminos that appear during game play.
+This system allows for equal distribution among the seven Tetriminos.
+\end{DoxyVerb}
+ 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgameobjects_1_1_bag_a3cda08a8613f6689e926b1724a480c05}\label{classgameobjects_1_1_bag_a3cda08a8613f6689e926b1724a480c05}} 
+\index{gameobjects.Bag@{gameobjects.Bag}!next@{next}}
+\index{next@{next}!gameobjects.Bag@{gameobjects.Bag}}
+\doxysubsubsection{\texorpdfstring{next()}{next()}}
+{\footnotesize\ttfamily def gameobjects.\+Bag.\+next (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Return the next tetromino for the Game Engine, and step the que forward\end{DoxyVerb}
+ \mbox{\Hypertarget{classgameobjects_1_1_bag_a1359853aaf0c7261729e04309b4e2771}\label{classgameobjects_1_1_bag_a1359853aaf0c7261729e04309b4e2771}} 
+\index{gameobjects.Bag@{gameobjects.Bag}!queue\_forward@{queue\_forward}}
+\index{queue\_forward@{queue\_forward}!gameobjects.Bag@{gameobjects.Bag}}
+\doxysubsubsection{\texorpdfstring{queue\_forward()}{queue\_forward()}}
+{\footnotesize\ttfamily def gameobjects.\+Bag.\+queue\+\_\+forward (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{mino,  }\item[{}]{delete = {\ttfamily True} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Delete (optionally) the top tetromino, Move each Tetromino up by one in the que, and place the next to the end of queue\nqueue_forward(mino, delete=True)\nmino:Tetromino-type ref\ndelete: delete the top piece\end{DoxyVerb}
+ \mbox{\Hypertarget{classgameobjects_1_1_bag_aa87b862e2eca7e3a8d718dd4e2822206}\label{classgameobjects_1_1_bag_aa87b862e2eca7e3a8d718dd4e2822206}} 
+\index{gameobjects.Bag@{gameobjects.Bag}!start@{start}}
+\index{start@{start}!gameobjects.Bag@{gameobjects.Bag}}
+\doxysubsubsection{\texorpdfstring{start()}{start()}}
+{\footnotesize\ttfamily def gameobjects.\+Bag.\+start (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Initialize the first Bag and Next Queue\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+gameobjects.\+py\end{DoxyCompactItemize}

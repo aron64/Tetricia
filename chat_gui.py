@@ -62,7 +62,17 @@ class ChatGui(Frame):
         ######################################################
 
         self.help="""Right click in the chat to costumize.
-Left click on pictures to save or open them in default size."""
+Left click on pictures to save or open them in default size.
+Basic Controls
+   * Arrow Left: Move left
+   * Arrow Right: Move Right
+   * Arrow Down: Soft Drop
+   * Arrow Up: Rotate clockwise
+   * Left Ctrl: Rotate counter-clockwise
+   * Space: Hard Drop
+   * C, Left shift: Hold
+   * F11: Fullscreen mode *(multiplayer only)*
+   * Escape: Exit Fullscreen mode *(multiplayer only)*"""
         self.message=StringVar()
         self.e_out=Entry(self, width=maxchar-1, textvariable=self.message,font=self.font, bd=3,highlightbackground=self.foreground, highlightcolor=self.selectbackground, highlightthickness=2)
         self.e_out.grid(row=2, column=0,sticky=E)

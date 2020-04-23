@@ -203,7 +203,7 @@ init(master, blocksize=30, level=1)
 		self.chmusic=ttk.Checkbutton(self,text="Music", command=self.swmusic,variable=self.bgvar, state=ACTIVE)
 		self.chmusic.grid(row=1, column=0)
 		self.bgmusic=StringVar()
-		self.bgmusic.set("bg1")
+		self.bgmusic.set("bg2")
 		Label(self,text="Music volume", font=self.font).grid(row=2, column=0,sticky="S")
 		self.vol = ttk.Scale(self, from_=0, to=100, orient=HORIZONTAL,command=self.set_vol)
 		self.vol.grid(row=3,column=0,sticky=N)
@@ -222,22 +222,30 @@ init(master, blocksize=30, level=1)
 		self.can.focus_set()
 		self.costumize=Toplevel(self)
 		self.costumize.grab_set()
-		b_confirm=ttk.Button(self.costumize, command= lambda :self.costumize.destroy(), text="OK")
+		b_confirm=ttk.Button(self.costumize, command= lambda :self.close_choose(), text="OK")
 		b_confirm.grid(row=0, column=3, rowspan=2,padx=10)
 
 		Radiobutton(self.costumize, text="Ievan Polkka", variable=self.bgmusic, value="bg1").grid(row=0)
 		Radiobutton(self.costumize, text="Ao no kanata", variable=self.bgmusic, value="bg").grid(row=1)
-		self.costumize.title('Settings')
+		Radiobutton(self.costumize, text="Коробейники", variable=self.bgmusic, value="bg2").grid(row=2)
+		Radiobutton(self.costumize, text="Коробейники piano", variable=self.bgmusic, value="bg3").grid(row=3)
+		self.costumize.title('Music settings')
 		self.costumize.geometry("+%d+%d" % (self.master.winfo_rootx()+50,
 											self.master.winfo_rooty()+50))
+		self.costumize.protocol("WM_DELETE_WINDOW", self.close_choose)
 		self.costumize.resizable(0,0)
 		self.costumize.transient(self.costumize.master)
+
+	def close_choose(self):
+		"""Called upon closing the music selecting dialog"""
+		self.costumize.destroy()
+		self.swmusic()
 
 	def swmusic(self):
 		"""Toggle the background/endgame music"""
 		self.can.focus_set()
 		if 'selected' in self.chmusic.state() and self.ingame:
-			self.mixer.Channel(0).play(self.sounds[self.bgmusic.get()])
+			self.mixer.Channel(0).play(self.sounds[self.bgmusic.get()],loops=-1)
 		else:
 			self.mixer.Channel(0).stop()
 			
@@ -509,11 +517,9 @@ class GameEngine(threading.Thread):
 						# 	self.pattern_phase()
 							raise "This should've never occur!"
 					self.phase="pattern"
-					print("Locked!")
 					self.pattern_phase()
 					self.eliminate_phase()
 				else:
-					print("OVER")
 					break
 		except AbandonException:
 			print("Player abandoned.")
@@ -828,7 +834,7 @@ to help the player manipulate it above the Skyline.
 		for x,y in self.active['coords']:
 			self.GM[x][y]='A'
 			self.active['objects'].append(self.can.create_rectangle(2+(bs*x),-(y-19)*bs,2+bs+(bs*x), -(y-20)*bs, fill=self.active['color']))
-		print(self.active)
+
 		distance=self.distance_from_surface()
 		self.ghost=[]
 		for x,y in self.active['coords']:
@@ -958,7 +964,6 @@ to help the player manipulate it above the Skyline.
 
 			if self.counter==15:
 				self.lock_down()
-				print("FORCED DOWN")
 				return True
 			#Hard Drop?
 			if self.hard_drop_flag:
@@ -1100,15 +1105,12 @@ This phase takes up no apparent game time.
 		elif bonus not in ("Mini T-Spin", "T-Spin"):
 			self.B2B=False
 
-		print("Bonus:"+bonus)
 		points=0
 		attack=0
 		if len(bonus)>0:
 			points=self.multiplier[self.bonuses.index(bonus)]
 			attack=self.attacks[self.bonuses.index(bonus)]
-			print("+%d" %points)
 		if apply_b2b:
-			print("Back-To-Back +%f" %(points*0.5))
 			points*=1.5
 			attack+=1
 
@@ -1212,7 +1214,7 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 		self.boss.ingame=False
 		self.send_over()
 		if self.mixer:
-			mixer.Channel(0).play(self.sounds["over"], fade_ms=8000)
+			self.mixer.Channel(0).play(self.sounds["over"], fade_ms=8000)
 		#self.eliminate=[x for x in range(40)]
 		self.eliminate=[y for y in range(21)]
 		self.clear_line_animation()
@@ -1395,9 +1397,12 @@ if __name__ == '__main__':
 					 "clear":mixer.Sound("effects/lineclear.ogg"),
 					 "over":mixer.Sound("music/gameover.ogg"),
 					 "bg":mixer.Sound("music/bg.OGG"),
-					 "bg1":mixer.Sound("music/bg1.OGG")
+					 "bg1":mixer.Sound("music/bg1.OGG"),
+					 "bg2":mixer.Sound("music/bg2.OGG"),
+					 "bg3":mixer.Sound("music/bg3.OGG")
 		}
 	fr=GameDashboard(root, mixer=mixer, sounds=sounds)
 	fr.grid(row=0, column=0)
 	root.title("Tetrícia")
+	root.resizable(0,0)
 	root.mainloop()

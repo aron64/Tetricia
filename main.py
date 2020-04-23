@@ -23,7 +23,9 @@ class Tetricia(Tk):
 					 "clear":mixer.Sound("effects/lineclear.ogg"),
 					 "over":mixer.Sound("music/gameover.ogg"),
 					 "bg":mixer.Sound("music/bg.OGG"),
-					 "bg1":mixer.Sound("music/bg1.OGG")
+					 "bg1":mixer.Sound("music/bg1.OGG"),
+					 "bg2":mixer.Sound("music/bg2.OGG"),
+					 "bg3":mixer.Sound("music/bg3.OGG")
 		}
 		self.screenw=self.winfo_screenwidth()
 		self.screenh=self.winfo_screenheight()
@@ -48,7 +50,7 @@ class Tetricia(Tk):
 
 
 
-		#self.trial_start()
+		self.trial_start()
 
 	def esc(self, evt):
 		"""Escape fullscreen"""
@@ -77,7 +79,6 @@ class Tetricia(Tk):
 
 	def add_player(self, name):
 		"""When a new player joins the server, place their dashboard"""
-		print("NEW:"+name)
 
 		self.players[name]=OpponentDashboard(self,self.screenh/27*self.yscale, name, self.level)
 		if self.max==2:
@@ -91,7 +92,6 @@ class Tetricia(Tk):
 	
 	def remove_player(self, name):
 		"""When a player leaves the server, clear it up"""
-		print("LEFT:"+name)
 
 		self.players[name].destroy()
 		del self.players[name]
@@ -193,6 +193,7 @@ class Tetricia(Tk):
 
 	def opponent_control_test(self):
 		"""test opponent.py"""
+		self.max=1
 		self.player2=OpponentDashboard(self,20,"AAAA")
 		self.player2.grid(row=0,column=1,sticky=N)
 		self.player2.new_mino("T")
