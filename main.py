@@ -22,11 +22,11 @@ class Tetricia(Tk):
 					 "move":mixer.Sound("effects/move.ogg"),
 					 "clear":mixer.Sound("effects/lineclear.ogg"),
 					 "over":mixer.Sound("music/gameover.ogg"),
-					 "bg":mixer.Sound("music/bg.OGG"),
-					 "bg1":mixer.Sound("music/bg1.OGG"),
-					 "bg2":mixer.Sound("music/bg2.OGG"),
-					 "bg3":mixer.Sound("music/bg3.OGG"),
-					 "bg4":mixer.Sound("music/bg4.OGG")
+					 "bg":mixer.Sound("music/bg.ogg"),
+					 "bg1":mixer.Sound("music/bg1.ogg"),
+					 "bg2":mixer.Sound("music/bg2.ogg"),
+					 "bg3":mixer.Sound("music/bg3.ogg"),
+					 "bg4":mixer.Sound("music/bg4.ogg")
 		}
 		self.screenw=self.winfo_screenwidth()
 		self.screenh=self.winfo_screenheight()

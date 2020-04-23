@@ -173,9 +173,9 @@ init(master, blocksize=30, level=1)
 		self.label_frame=Frame(self)
 		self.label_frame.grid(row=8, column=0)
 		
-		Label(self.label_frame,text="Incoming Lines: \n\n",font=self.font).grid(row=0, column=0, sticky="SW")
+		Label(self.label_frame,text="Incoming Lines:",font=self.font).grid(row=0, column=0, sticky="W")
 		self.l_attacks=Label(self.label_frame,text="0",font=self.font, fg="red")
-		self.l_attacks.grid(row=0, column=1, sticky="SW")
+		self.l_attacks.grid(row=0, column=1, sticky="E")
 
 		Label(self.label_frame,text="Points: ",font=self.font).grid(row=3, column=0, sticky="SW")
 		Label(self.label_frame,text="Level: ",font=self.font).grid(row=4, column=0, sticky="SW")
