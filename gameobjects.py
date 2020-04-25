@@ -1110,7 +1110,9 @@ This phase takes up no apparent game time.
 				self.lineScore+=lines
 				after=self.lineScore//10
 				if after>before:self.levelScore+=1
-		
+			else:
+				self.lineScore+=lines
+	
 
 		#Back-To-Back recognition
 		apply_b2b=False
