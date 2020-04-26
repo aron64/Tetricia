@@ -155,10 +155,14 @@ init(master, blocksize=30, level=1)
 
 		##The hold canvas
 		self.hold_can = Canvas(self, width=6*blocksize, height=4*blocksize, bg=self.bg)
+		self.hold_can.create_rectangle(10,10,6*self.blocksize-5,self.blocksize*4-5, fill="black",outline="grey", width=10)
 
 		##Canvas of the Queue
 		self.queue_can = Canvas(self, width=6*blocksize, height=20*blocksize+5, bg=self.bg)
-		self.queue_can.create_rectangle(0,0,7*blocksize,blocksize*3.33, fill="cyan")
+		self.queue_can.create_line(10,self.blocksize*3.33-10,10,self.blocksize*20+5, fill="grey", width=10)
+		self.queue_can.create_line(6*self.blocksize-5,self.blocksize*3.33-10,6*self.blocksize-5,self.blocksize*20+5, fill="grey", width=10)
+		self.queue_can.create_line(10,self.blocksize*20,6*self.blocksize-5,self.blocksize*20, fill="grey", width=10)
+		self.queue_can.create_rectangle(10,10,6*blocksize-5,blocksize*3.33-10, fill="black",outline="grey", width=10)
 		self.bag=Bag(self.queue_can, blocksize)
 
 		#Widget placements
@@ -281,8 +285,12 @@ init(master, blocksize=30, level=1)
 			self.can.delete(ALL)
 			self.can.create_line(0,0,10*self.blocksize, 0, fill="white")
 			self.queue_can.delete(ALL)
-			self.queue_can.create_rectangle(0,0,7*self.blocksize,self.blocksize*3.33, fill="cyan")
+			self.queue_can.create_rectangle(10,10,6*self.blocksize-5,self.blocksize*3.33-10, fill="black",outline="grey", width=10)
+			self.queue_can.create_line(10,self.blocksize*3.33-10,10,self.blocksize*20+5, fill="grey", width=10)
+			self.queue_can.create_line(10,self.blocksize*20,6*self.blocksize-5,self.blocksize*20, fill="grey", width=10)
+			self.queue_can.create_line(6*self.blocksize-5,self.blocksize*3.33-10,6*self.blocksize-5,self.blocksize*20+5, fill="grey", width=10)
 			self.hold_can.delete(ALL)
+			self.hold_can.create_rectangle(10,10,6*self.blocksize-5,self.blocksize*4-5, fill="black",outline="grey", width=10)
 			self.ingame=True
 			self.swmusic()
 			self.bag.start()
@@ -869,6 +877,8 @@ to help the player manipulate it above the Skyline.
 	def place_hold(self, tetromino):
 		"Places the tetromino to the hold canvas"
 		self.boss.hold_can.delete(ALL)
+		self.boss.hold_can.create_rectangle(10,10,6*self.blocksize-5,self.blocksize*4-5, fill="black",outline="grey", width=10)
+
 		curr=tetromino.generate()
 		bs=self.blocksize*0.85
 		dx=-(bs*(5/3))
@@ -1112,7 +1122,7 @@ This phase takes up no apparent game time.
 				if after>before:self.levelScore+=1
 			else:
 				self.lineScore+=lines
-	
+
 
 		#Back-To-Back recognition
 		apply_b2b=False
@@ -1408,7 +1418,14 @@ This system allows for equal distribution among the seven Tetriminos.
 		bs=self.blocksize
 		curr=mino.generate()
 		dx=self.orig_box*1.33
-		self.objects.append([self.queue_can.create_rectangle(-dx+(bs*(x+1)),self.orig_box*19-(y-19)*bs,-dx+bs+(bs*(x+1)), self.orig_box*19-(y-20)*bs, fill=curr['color']) for x,y in curr['coords']])
+		dy=0
+		if mino==I:
+			dx+=15
+			dy=-8
+		elif mino==O:
+			dx+=15
+			dy=3
+		self.objects.append([self.queue_can.create_rectangle(-dx+(bs*(x+1)),self.orig_box*19-(y-19)*bs+dy,-dx+bs+(bs*(x+1)), self.orig_box*19-(y-20)*bs+dy, fill=curr['color']) for x,y in curr['coords']])
 
 
 class AbandonException(Exception):
@@ -1419,26 +1436,65 @@ class GameOverException(Exception):
 	pass
 
 
+	
 if __name__ == '__main__':
+	def getsounds(window):
+		global sounds
+		time.sleep(0.1)
+		now=time.time()
+		i=IntVar()
+		prog=ttk.Progressbar(window, orient="horizontal", length=200, mode="determinate", variable=i)
+		prog.grid()
+		c=0
+		for x in sounds:
+			sounds[x]=mixer.Sound(sounds[x])
+			c+=1
+			i.set(c*100/len(sounds))
+		print("FINISHED LOADING MUSIC")
+
+		fr=GameDashboard(window.master, mixer=mixer, sounds=sounds)
+		fr.grid(row=0, column=0)
+		window.grid_forget()
+		print(time.time()-now)
+
+	def load(rt):
+		loader_gui=Frame(rt)
+		loader_gui.grid()
+		th_load=threading.Thread(target=lambda:getsounds(loader_gui))
+		th_load.start()
+
+
 	from pygame import mixer # Load the required library
 	import os
 	os.system('cls')
-	root=Tk()
 	mixer.pre_init(44100, 16, 2, 4096) 
 	mixer.init()
-	sounds={"lock":mixer.Sound("effects/lock.ogg"),
-					 "rotate":mixer.Sound("effects/rotate.ogg"),
-					 "move":mixer.Sound("effects/move.ogg"),
-					 "clear":mixer.Sound("effects/lineclear.ogg"),
-					 "over":mixer.Sound("music/gameover.ogg"),
-					 "bg":mixer.Sound("music/bg.OGG"),
-					 "bg1":mixer.Sound("music/bg1.OGG"),
-					 "bg2":mixer.Sound("music/bg2.OGG"),
-					 "bg3":mixer.Sound("music/bg3.OGG"),
-					 "bg4":mixer.Sound("music/bg4.OGG")
+	sounds={"lock":("effects/lock.ogg"),
+			"rotate":("effects/rotate.ogg"),
+			"move":("effects/move.ogg"),
+			"clear":("effects/lineclear.ogg"),
+			"over":("music/gameover.ogg"),
+			"bg":("music/bg.ogg"),
+			"bg1":("music/bg1.ogg"),
+			"bg2":("music/bg2.ogg"),
+			"bg3":("music/bg3.ogg"),
+			"bg4":("music/bg4.ogg")
 		}
-	fr=GameDashboard(root, mixer=mixer, sounds=sounds)
-	fr.grid(row=0, column=0)
+
+	root=Tk()
+	# sounds={"lock":mixer.Sound("effects/lock.ogg"),
+	# 				 "rotate":mixer.Sound("effects/rotate.ogg"),
+	# 				 "move":mixer.Sound("effects/move.ogg"),
+	# 				 "clear":mixer.Sound("effects/lineclear.ogg"),
+	# 				 "over":mixer.Sound("music/gameover.ogg"),
+	# 				 "bg":mixer.Sound("music/bg.OGG"),
+	# 				 "bg1":mixer.Sound("music/bg1.OGG"),
+	# 				 "bg2":mixer.Sound("music/bg2.OGG"),
+	# 				 "bg3":mixer.Sound("music/bg3.OGG"),
+	# 				 "bg4":mixer.Sound("music/bg4.OGG")
+	# 	}
+	
 	root.title("Tetrícia")
 	root.resizable(0,0)
+	root.after(0,lambda:load(root))
 	root.mainloop()
