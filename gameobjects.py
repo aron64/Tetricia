@@ -791,11 +791,11 @@ to help the player manipulate it above the Skyline.
 			else:
 				messagebox.showinfo("You won!","Score: %s"%self.gameScore)
 			raise GameOverException()
-		if self.newAttacks>0:
+		if self.newAttacks>0 and not from_hold:
 			for x in range(self.newAttacks):
 				self.lift()
 				time.sleep(0.05)
-		self.newAttacks=0
+			self.newAttacks=0
 		bs=self.blocksize
 		#Game speed
 		self.speed=(0.8 - ((self.levelScore - 1) * 0.007))**(self.levelScore - 1)
