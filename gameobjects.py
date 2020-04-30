@@ -213,7 +213,8 @@ init(master, blocksize=30, level=1)
 				assert self.bgmusic.get() in self.sounds 
 		except:
 			self.bgmusic.set("bg3")
-			with open("music.prefs", 'w') as f:self.bgmusic.get()
+			with open("music.prefs", 'w') as f:
+				f.write(self.bgmusic.get())
 		Label(self,text="Music volume", font=self.font).grid(row=3, column=0,sticky="N")
 		Label(self,text="Effects volume", font=self.font).grid(row=6, column=0,sticky="S")
 		self.vol = ttk.Scale(self, from_=0, to=100, orient=HORIZONTAL,command=self.set_vol)
