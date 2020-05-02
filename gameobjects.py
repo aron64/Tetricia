@@ -221,14 +221,31 @@ init(master, blocksize=30, level=1)
 		self.vol_effects = ttk.Scale(self, from_=0, to=100, orient=HORIZONTAL,command=self.set_vol_effects)
 		self.vol.grid(row=4,column=0,sticky=N)
 		self.vol_effects.grid(row=7,column=0,sticky=N)
-		self.vol.set(100)
-		self.vol_effects.set(100)
+		self.vol.set(50)
+		self.vol_effects.set(50)
 		self.choosemusic=ttk.Button(self, text="Choose Music",command=self.choose_music)
 		self.choosemusic.grid(row=5, column=0,sticky="N")
 		##Play button to start playing
 		self.startButton = ttk.Button(self, text="\nPLAY\n", command=self.start_new_game, width=int(0.85*blocksize))
 		self.startButton.grid(row=1, column=0,padx=8, sticky="N")
-	
+		self.pauseButton = ttk.Button(self, text="\nPause\n", command=self.pause, width=int(0.85*blocksize))
+	def pause(self):
+		"""Pause the game. The engine will check if panel is paused. This is not an instant pause but happens before the next possible user-action."""
+		self.can.focus_set()
+		#
+		if self.ingame and not self.online:
+			self.paused=not self.paused
+		if self.paused:
+			self.pauseButton.config(text="\nContinue\n")
+		else:
+			self.pauseButton.config(text="\nPause\n")
+	def set_ready(self):
+		if self.online:
+			self.startButton.config(state="normal")
+			return
+		self.pauseButton.grid_forget()
+		self.paused=False
+		self.startButton.grid(row=1, column=0,padx=8, sticky="N")
 	def set_vol(self,evt):
 		"""Set the volume of all music"""
 		self.mixer.Channel(0).set_volume(float(evt)/100)
@@ -292,6 +309,9 @@ init(master, blocksize=30, level=1)
 			self.queue_can.create_line(6*self.blocksize-5,self.blocksize*3.33-10,6*self.blocksize-5,self.blocksize*20+5, fill="grey", width=10)
 			self.hold_can.delete(ALL)
 			self.hold_can.create_rectangle(10,10,6*self.blocksize-5,self.blocksize*4-5, fill="black",outline="grey", width=10)
+			if not self.online:
+				self.startButton.grid_forget()
+				self.pauseButton.grid(row=1, column=0,padx=8, sticky="N")
 			self.ingame=True
 			self.swmusic()
 			self.bag.start()
@@ -1015,6 +1035,7 @@ to help the player manipulate it above the Skyline.
 					self.counter+=1
 					self.spin_last=True
 			elif self.pressed:
+				self.boss.gameLock.acquire()
 				do=False
 				now=time.time()
 				if self.timer_repeat==0:
@@ -1032,7 +1053,7 @@ to help the player manipulate it above the Skyline.
 					if act:
 						self.counter+=1
 						self.spin_last=False
-
+				self.boss.gameLock.release()
 			if self.active['coords']!=c1:
 				self.send_coords()
 
