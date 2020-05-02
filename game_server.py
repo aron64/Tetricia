@@ -57,7 +57,11 @@ class ThreadClient(threading.Thread):
                 locking.release()
                 continue
             if msgClient.startswith("!level"):
-                STARTLEVEL=int(msgClient.split()[1])
+                try:
+                    STARTLEVEL=int(msgClient.split()[1])
+                except:
+                    sendmsg(conn_Cli[name], bytes("Server>>> Invalid syntax!", 'utf-8'))
+                    continue
                 for client in conn_Cli:
                     if client!=name:
                         message="%s> %s" % (name, msgClient)
