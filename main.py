@@ -17,17 +17,6 @@ class Tetricia(Tk):
 		mixer.init()
 		default_font = font.nametofont("TkDefaultFont")
 		default_font.config(family='Comic Sans MS')
-		self.sounds={"lock":mixer.Sound("effects/lock.ogg"),
-					 "rotate":mixer.Sound("effects/rotate.ogg"),
-					 "move":mixer.Sound("effects/move.ogg"),
-					 "clear":mixer.Sound("effects/lineclear.ogg"),
-					 "over":mixer.Sound("music/gameover.ogg"),
-					 "bg":mixer.Sound("music/bg.ogg"),
-					 "bg1":mixer.Sound("music/bg1.ogg"),
-					 "bg2":mixer.Sound("music/bg2.ogg"),
-					 "bg3":mixer.Sound("music/bg3.ogg"),
-					 "bg4":mixer.Sound("music/bg4.ogg")
-		}
 		self.screenw=self.winfo_screenwidth()
 		self.screenh=self.winfo_screenheight()
 
@@ -49,9 +38,40 @@ class Tetricia(Tk):
 		##~UwU~
 		self.playing=False
 
-
+		threading.Thread(target=self.getsounds).start()
 
 		#self.trial_start()
+
+	def getsounds(self):
+		"""Load the sounds and display it to the client"""
+		self.sounds={"lock":("effects/lock.ogg"),
+			"over":("music/gameover.ogg"),
+			"bg":("music/bg.ogg"),
+			"bg1":("music/bg1.ogg"),
+			"rotate":("effects/rotate.ogg"),
+			"bg2":("music/bg2.ogg"),
+			"move":("effects/move.ogg"),
+			"bg3":("music/bg3.ogg"),
+			"clear":("effects/lineclear.ogg"),
+			"bg4":("music/bg4.ogg")
+		}
+
+		self.chat.b_connect.config(state='disable')
+		self.chat.write("Loading, please wait...")
+
+		time.sleep(0.01)
+		now=time.time()
+		c=0
+		for x in self.sounds:
+			self.sounds[x]=mixer.Sound(self.sounds[x])
+			c+=1
+			self.chat.prog_setter(c*100/len(self.sounds),100)
+
+		self.chat.write("Loaded in %.2fs"%(time.time()-now))
+		print("Loaded in %.2fs"%(time.time()-now))
+		self.chat.b_connect.config(state='normal')
+		time.sleep(0.5)
+		self.chat.prog_setter(0,1)
 
 	def esc(self, evt):
 		"""Escape fullscreen"""
