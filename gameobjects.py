@@ -577,6 +577,7 @@ class GameEngine(threading.Thread):
 				while self.boss.master.playing:
 					self.check_opponents()
 				print("Exiting thread")
+			self.boss.set_ready()
 		except Exception as e:
 			print(e)
 
@@ -1228,7 +1229,7 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 			for x in range(10):
 				for y in elim:
 					self.can.itemconfig(self.OGM[x][y], fill ="#%02x%02x%02x" % (rgb_fact,rgb_fact,rgb_fact))
-			rgb_fact+=16
+			rgb_fact+=64
 			time.sleep(0.005)
 
 		for i in range(len(elim)):
@@ -1241,7 +1242,7 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 						self.OGM[x][y1-1]=self.OGM[x][y1]
 						self.can.move(self.OGM[x][y1], 0, self.blocksize)
 						self.OGM[x][y1]=0
-				time.sleep(0.01)
+			time.sleep(0.01)
 			for j in range(len(elim)):
 				elim[j]-=1
 
