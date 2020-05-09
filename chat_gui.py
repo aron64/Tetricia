@@ -160,11 +160,11 @@ Basic Controls
 
     def connect(self):
         """Connect to server"""
-        self.connection=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.write("Connecting... - IPv4: {0}, Port: {1}".format(self.data[0].get(),self.data[1].get()))
+        self.connection=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.write("Connecting... - IPv6: {0}, Port: {1}".format(self.data[0].get(),self.data[1].get()))
         HOST, PORT=self.data[0].get(),int(self.data[1].get())
         try:
-            self.connection.connect((HOST, PORT))
+            self.connection.connect((HOST,PORT))
         except socket.error as e:
             self.write(str(e))
             self.write("Couldn't reach server.")

@@ -197,13 +197,36 @@ class OpponentDashboard(GameEngine,Frame):
 		self.ghost_adjust()
 
 	#self.lock_down gets called by server, then eliminate
+	def clear_line_animation(self):
+		"Method, removes the marked blocks visually. Note: This should take up no gametime, but the fact it does, only awards multiple line clears by a brief pause, which can be helpful at high levels."
+		elim=self.eliminate.copy()
+		rgb_fact=0
+		while rgb_fact<255:
+			for x in range(10):
+				for y in elim:
+					self.can.itemconfig(self.OGM[x][y], fill ="#%02x%02x%02x" % (rgb_fact,rgb_fact,rgb_fact))
+			rgb_fact+=64
 
+		for i in range(len(elim)):
+			y=elim[i]
+			for x in range(10):
+				self.can.delete(self.OGM[x][y])
+				self.OGM[x][y]=0
+				for y1 in range(y+1,40):
+					if self.OGM[x][y1]:
+						self.OGM[x][y1-1]=self.OGM[x][y1]
+						self.can.move(self.OGM[x][y1], 0, self.blocksize)
+						self.OGM[x][y1]=0
+						
+			for j in range(len(elim)):
+				elim[j]-=1
+				
 	def set_eliminate(self, lines):
 		"""Function to recieve the line ID-s to eliminate"""
 		lines=eval(lines)
 		self.eliminate=lines
 		self.clear_marked_lines()
-
+        
 	def set_statistics(self, stats):
 		"""Function to receive opponent stats"""
 		stats=eval(stats)
