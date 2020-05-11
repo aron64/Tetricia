@@ -200,12 +200,8 @@ class OpponentDashboard(GameEngine,Frame):
 	def clear_line_animation(self):
 		"Method, removes the marked blocks visually. Note: This should take up no gametime, but the fact it does, only awards multiple line clears by a brief pause, which can be helpful at high levels."
 		elim=self.eliminate.copy()
-		rgb_fact=0
-		while rgb_fact<255:
-			for x in range(10):
-				for y in elim:
-					self.can.itemconfig(self.OGM[x][y], fill ="#%02x%02x%02x" % (rgb_fact,rgb_fact,rgb_fact))
-			rgb_fact+=64
+
+		# We don't really need the color animations for opponents either.
 
 		for i in range(len(elim)):
 			y=elim[i]

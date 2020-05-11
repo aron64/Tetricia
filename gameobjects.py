@@ -198,6 +198,7 @@ init(master, blocksize=30, level=1)
 		self.master.bind("<space>", self.button_space)
 		self.master.bind("c", self.button_c)
 		self.master.bind("<Shift_L>", self.button_shift_l)
+		self.master.bind("<Key-1>", self.pause)
 
 		#Sound
 
@@ -229,7 +230,7 @@ init(master, blocksize=30, level=1)
 		self.startButton = ttk.Button(self, text="\nPLAY\n", command=self.start_new_game, width=int(0.85*blocksize))
 		self.startButton.grid(row=1, column=0,padx=8, sticky="N")
 		self.pauseButton = ttk.Button(self, text="\nPause\n", command=self.pause, width=int(0.85*blocksize))
-	def pause(self):
+	def pause(self,evt=None):
 		"""Pause the game. The engine will check if panel is paused. This is not an instant pause but happens before the next possible user-action."""
 		self.can.focus_set()
 		#
