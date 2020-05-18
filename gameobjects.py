@@ -581,6 +581,8 @@ class GameEngine(threading.Thread):
 			self.boss.set_ready()
 		except Exception as e:
 			print(e)
+		finally:
+			self.kb_listen.stop()
 
 	def call_hold(self):
 		"""Set flag to hold the piece"""
@@ -1270,7 +1272,7 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 	def game_over(self):
 		self.boss.ingame=False
 		self.send_over()
-		if self.mixer:
+		if self.mixer and 'selected' in self.boss.chmusic.state():
 			self.mixer.Channel(0).play(self.sounds["over"], fade_ms=8000)
 		#self.eliminate=[x for x in range(40)]
 		coords=[[(0,38),(0,37),(0,36),(1,39),(2,39),(3,39),(2,37),(3,37),(3,36),(1,35),(2,35),(3,35)],
@@ -1291,7 +1293,7 @@ Points are awarded to the player according to the Tetris Scoring System,[...].
 				self.OGM[x][y]=self.can.create_rectangle(2+(bs*x),-(y-19)*bs,2+bs+(bs*x), -(y-20)*bs, fill=clr[i])
 		self.eliminate=[y for y in range(20)]
 		self.clear_line_animation()
-		time.sleep(4)
+		
 		if self.online:
 			self.boss.master.chat.write("Game over!\nYour score: %s"%self.gameScore)
 		else:
